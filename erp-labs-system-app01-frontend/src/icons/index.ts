@@ -65,6 +65,9 @@ import { ReactComponent as EmployeeIcon } from "./employee.svg?react";
 import { ReactComponent as CompanyIcon } from "./company.svg?react";
 import { ReactComponent as UsersIcon } from "./users.svg?react";
 import { ReactComponent as AuditIcon } from "./audit.svg?react";
+import { ReactComponent as StockAlertIcon } from "./stock-alert.svg?react";
+import { ReactComponent as StockWarningIcon } from "./stock-warning.svg?react";
+import { ReactComponent as StockValueIcon } from "./stock-value.svg?react";
 
 export {
   ErrorHexaIcon,
@@ -134,4 +137,7 @@ export {
   CompanyIcon,
   UsersIcon,
   AuditIcon,
+  StockAlertIcon,
+  StockWarningIcon,
+  StockValueIcon,
 };

@@ -2,7 +2,9 @@ import React, { useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { 
   BoxIcon, 
-  AlertIcon, 
+  StockAlertIcon, 
+  StockWarningIcon, 
+  StockValueIcon,
   ArrowUpIcon, 
   ArrowDownIcon,
   PlusIcon
@@ -179,7 +181,7 @@ export default function StocksDashboard() {
           {/* Articles en Rupture */}
           <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] md:p-6">
             <div className="flex h-11.5 w-11.5 items-center justify-center rounded-full bg-meta-2 dark:bg-meta-4">
-              <AlertIcon className="h-6 w-6 text-brand-500" />
+              <StockAlertIcon className="h-6 w-6 text-brand-500" />
             </div>
             <div className="mt-4.5">
               <h4 className="text-title-md font-bold text-gray-800 dark:text-white/90">
@@ -192,7 +194,7 @@ export default function StocksDashboard() {
           {/* Articles Critiques */}
           <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] md:p-6">
             <div className="flex h-11.5 w-11.5 items-center justify-center rounded-full bg-meta-2 dark:bg-meta-4">
-              <AlertIcon className="h-6 w-6 text-brand-500" />
+              <StockWarningIcon className="h-6 w-6 text-brand-500" />
             </div>
             <div className="mt-4.5">
               <h4 className="text-title-md font-bold text-gray-800 dark:text-white/90">
@@ -205,7 +207,7 @@ export default function StocksDashboard() {
           {/* Valeur Totale */}
           <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] md:p-6">
             <div className="flex h-11.5 w-11.5 items-center justify-center rounded-full bg-meta-2 dark:bg-meta-4">
-              <ArrowUpIcon className="h-6 w-6 text-brand-500" />
+              <StockValueIcon className="h-6 w-6 text-brand-500" />
             </div>
             <div className="mt-4.5">
               <h4 className="text-title-md font-bold text-gray-800 dark:text-white/90">
@@ -403,7 +405,7 @@ export default function StocksDashboard() {
             >
               <div className="flex items-center space-x-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-full bg-meta-2 dark:bg-meta-4">
-                  <AlertIcon className="h-5 w-5 text-brand-500" />
+                  <StockAlertIcon className="h-5 w-5 text-brand-500" />
                 </div>
                 <div>
                   <h5 className="font-medium text-gray-800 dark:text-white/90">Alertes</h5>
