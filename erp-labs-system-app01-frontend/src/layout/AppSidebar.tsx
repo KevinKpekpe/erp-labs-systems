@@ -77,7 +77,8 @@ const navItems: NavItem[] = [
     icon: <StockIcon />,
     name: "Gestion des Stocks",
     subItems: [
-      { name: "Articles en stock", path: "/stocks", pro: false },
+      { name: "Tableau de bord", path: "/stocks", pro: false },
+      { name: "Articles en stock", path: "/stocks/articles", pro: false },
       { name: "Mouvements", path: "/stocks/mouvements", pro: false },
       { name: "Alertes", path: "/stocks/alertes", pro: false },
       { name: "Catégories", path: "/stocks/categories", pro: false },

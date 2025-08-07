@@ -32,6 +32,7 @@ import MedecinList from "./pages/Medecins/MedecinList";
 import AddMedecin from "./pages/Medecins/AddMedecin";
 import EditMedecin from "./pages/Medecins/EditMedecin";
 import MedecinDetails from "./pages/Medecins/MedecinDetails";
+import StocksDashboard from "./pages/Stocks/StocksDashboard";
 
 export default function App() {
   return (
@@ -60,6 +61,9 @@ export default function App() {
             <Route path="/medecins/nouveau" element={<AddMedecin />} />
             <Route path="/medecins/:id" element={<MedecinDetails />} />
             <Route path="/medecins/:id/modifier" element={<EditMedecin />} />
+
+            {/* Gestion des Stocks */}
+            <Route path="/stocks" element={<StocksDashboard />} />
 
             {/* Profile & Administration */}
             <Route path="/profile" element={<UserProfiles />} />
