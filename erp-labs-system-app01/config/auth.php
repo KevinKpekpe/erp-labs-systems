@@ -40,10 +40,8 @@ return [
             'driver' => 'session',
             'provider' => 'users',
         ],
-        'sanctum' => [
-            'driver' => 'session',
-            'provider' => 'users',
-        ],
+        // Ne PAS définir de guard 'sanctum' ici.
+        // Le middleware 'auth:sanctum' utilise le guard fourni par le package Sanctum.
         'superadmins' => [
             'driver' => 'session',
             'provider' => 'superadmins',

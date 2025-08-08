@@ -43,7 +43,16 @@ class AuthController extends Controller
             );
         }
 
-        $token = $superAdmin->createToken('superadmin')->plainTextToken;
+        // Mettre à jour la dernière connexion
+        $superAdmin->update(['last_login' => now()]);
+
+        $tokenResult = $superAdmin->createToken('superadmin');
+        $tokenModel = $tokenResult->accessToken ?? $tokenResult->token ?? null; // compatibilité
+        $ttl = (int) config('auth_tokens.ttl_minutes', 0);
+        if ($ttl > 0 && $tokenModel && method_exists($tokenModel, 'forceFill')) {
+            $tokenModel->forceFill(['expires_at' => now()->addMinutes($ttl)])->save();
+        }
+        $token = $tokenResult->plainTextToken;
 
         return ApiResponse::success([
             'token' => $token,
@@ -52,12 +61,18 @@ class AuthController extends Controller
                 'username' => $superAdmin->username,
                 'email' => $superAdmin->email,
             ],
+            'expires_at' => ($ttl > 0 && $tokenModel) ? $tokenModel->expires_at : null,
         ], 'auth.login_success');
     }
 
     public function me(Request $request)
     {
-        return ApiResponse::success($request->user());
+        // Restreindre à SuperAdmin pour éviter collision avec users
+        $user = $request->user();
+        if (!$user instanceof \App\Models\SuperAdmin) {
+            throw new \App\Exceptions\ApiException('errors.unauthorized', 401, 'UNAUTHENTICATED');
+        }
+        return ApiResponse::success($user, 'auth.me_success');
     }
 
     public function logout(Request $request)

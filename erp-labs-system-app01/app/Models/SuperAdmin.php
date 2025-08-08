@@ -14,10 +14,10 @@ class SuperAdmin extends Authenticatable
 
     protected $table = 'superadmins';
     protected $primaryKey = 'id';
-    public $timestamps = false;
 
     protected $fillable = [
         'code',
+        'name',
         'username',
         'password',
         'email',

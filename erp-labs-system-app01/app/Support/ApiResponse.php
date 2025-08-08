@@ -24,6 +24,8 @@ class ApiResponse
             'message' => $translatedMessage,
             'data' => $data instanceof Arrayable ? $data->toArray() : $data,
             'meta' => $meta,
+            'status' => $status,
+            'path' => request()->path(),
         ], $status);
     }
 
@@ -43,6 +45,8 @@ class ApiResponse
             'code' => $errorCode,
             'errors' => $errors,
             'meta' => $meta,
+            'status' => $status,
+            'path' => request()->path(),
         ], $status);
     }
 }

@@ -17,6 +17,10 @@ class SuperAdminSeeder extends Seeder
                 'email' => 'superadmin@example.com',
                 'password' => Hash::make('Admin@1234'),
                 'is_active' => true,
+                'telephone' => '+0000000000',
+                'sexe' => null,
+                'photo_de_profil' => null,
+                'last_login' => null,
             ]
         );
     }
