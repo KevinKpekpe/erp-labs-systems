@@ -20,6 +20,7 @@ return new class extends Migration
             $table->string('photo_de_profil', 255)->nullable();
             $table->dateTime('last_login')->nullable();
             $table->boolean('is_active')->default(true);
+            $table->string('preferred_locale', 5)->nullable();
             $table->timestamps();
             $table->softDeletes();
         });

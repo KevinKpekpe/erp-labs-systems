@@ -33,6 +33,7 @@ class User extends Authenticatable
         'photo_de_profil',
         'last_login',
         'is_active',
+        'preferred_locale',
     ];
 
     /**

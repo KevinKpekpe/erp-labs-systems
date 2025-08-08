@@ -3,6 +3,8 @@
 namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Support\Facades\Route;
+use App\Http\Middleware\SetLocale;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -19,6 +21,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        // Enregistrer le middleware de locale globalement
+        Route::pushMiddlewareToGroup('web', SetLocale::class);
+        Route::pushMiddlewareToGroup('api', SetLocale::class);
     }
 }
