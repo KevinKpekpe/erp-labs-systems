@@ -11,7 +11,6 @@ class Permission extends Model
     use HasFactory, SoftDeletes;
 
     protected $table = 'permissions';
-    protected $primaryKey = 'permission_id';
 
     protected $fillable = [
         'code',

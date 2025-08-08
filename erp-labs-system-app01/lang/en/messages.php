@@ -4,6 +4,22 @@ return [
     'validation' => [
         'failed' => 'Validation failed.',
     ],
+    'company' => [
+        'created' => 'Company created successfully. An admin user has been created and emailed.',
+        'updated' => 'Company updated successfully.',
+        'deleted' => 'Company deleted successfully.',
+        'trashed' => 'Trashed companies retrieved.',
+        'restored' => 'Company restored successfully.',
+        'force_deleted' => 'Company permanently deleted.',
+    ],
+    'permissions' => [
+        'created' => 'Permission created successfully.',
+        'updated' => 'Permission updated successfully.',
+        'deleted' => 'Permission deleted successfully.',
+        'trashed' => 'Trashed permissions retrieved.',
+        'restored' => 'Permission restored successfully.',
+        'force_deleted' => 'Permission permanently deleted.',
+    ],
     'auth' => [
         'login_success' => 'Login successful.',
         'logout_success' => 'Logout successful.',

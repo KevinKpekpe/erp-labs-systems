@@ -4,6 +4,22 @@ return [
     'validation' => [
         'failed' => 'La validation a échoué.',
     ],
+    'company' => [
+        'created' => 'Compagnie créée avec succès. Un administrateur a été créé et un email lui a été envoyé.',
+        'updated' => 'Compagnie mise à jour avec succès.',
+        'deleted' => 'Compagnie supprimée avec succès.',
+        'trashed' => 'Compagnies supprimées (corbeille) récupérées.',
+        'restored' => 'Compagnie restaurée avec succès.',
+        'force_deleted' => 'Compagnie supprimée définitivement.',
+    ],
+    'permissions' => [
+        'created' => 'Permission créée avec succès.',
+        'updated' => 'Permission mise à jour avec succès.',
+        'deleted' => 'Permission supprimée avec succès.',
+        'trashed' => 'Permissions supprimées (corbeille) récupérées.',
+        'restored' => 'Permission restaurée avec succès.',
+        'force_deleted' => 'Permission supprimée définitivement.',
+    ],
     'auth' => [
         'login_success' => 'Connexion réussie.',
         'logout_success' => 'Déconnexion réussie.',

@@ -6,6 +6,7 @@ use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\Route;
 use App\Http\Middleware\SetLocale;
 use App\Http\Middleware\ForceJsonForApi;
+use App\Http\Middleware\EnsureSuperAdmin;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -26,5 +27,6 @@ class AppServiceProvider extends ServiceProvider
         Route::pushMiddlewareToGroup('web', SetLocale::class);
         Route::pushMiddlewareToGroup('api', SetLocale::class);
         Route::pushMiddlewareToGroup('api', ForceJsonForApi::class);
+        Route::aliasMiddleware('superadmin', EnsureSuperAdmin::class);
     }
 }
