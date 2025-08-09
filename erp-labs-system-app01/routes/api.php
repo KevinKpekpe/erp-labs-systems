@@ -52,8 +52,10 @@ Route::prefix('v1')->group(function () {
     // Public password reset
     Route::post('/auth/forgot-password', [AdminAuthController::class, 'forgotPassword']);
     Route::post('/auth/reset-password', [AdminAuthController::class, 'resetPassword']);
+    Route::post('/auth/resend-otp', [AdminAuthController::class, 'resendOtp']);
     Route::middleware(['auth:sanctum','must.change.password'])->group(function () {
         Route::post('/auth/change-password', [AdminAuthController::class, 'changePassword']);
+        Route::post('/auth/logout', [AdminAuthController::class, 'logout']);
         Route::get('/auth/me', [AdminAuthController::class, 'me']);
         Route::post('/auth/profile', [AdminAuthController::class, 'updateProfile']);
         Route::post('/company', [UserCompanyController::class, 'updateMyCompany'])

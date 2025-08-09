@@ -18,6 +18,9 @@ use App\Mail\UserPasswordReset;
 use App\Http\Requests\Admin\UpdateProfileRequest;
 use Illuminate\Support\Facades\Storage;
 use App\Services\AuditService;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\RateLimiter;
 
 class AuthController extends Controller
 {
@@ -25,11 +28,20 @@ class AuthController extends Controller
     {
         $data = $request->validated();
 
+        Log::info('LOGIN_ATTEMPT', [
+            'company_code' => $data['company_code'],
+            'login' => $data['login'],
+            'ip' => $request->ip(),
+            'ua' => $request->userAgent(),
+        ]);
+
         $company = Company::where('code', $data['company_code'])->first();
         if (!$company) {
+            Log::warning('LOGIN_FAILED_COMPANY_NOT_FOUND', ['company_code' => $data['company_code']]);
             throw new ApiException('errors.not_found', 404, 'COMPANY_NOT_FOUND');
         }
         if ($company->deleted_at) {
+            Log::warning('LOGIN_FAILED_COMPANY_DELETED', ['company_id' => $company->id, 'company_code' => $company->code]);
             throw new ApiException('errors.forbidden', 403, 'COMPANY_DELETED');
         }
 
@@ -38,13 +50,22 @@ class AuthController extends Controller
                 $q->where('username', $data['login'])->orWhere('email', $data['login']);
             })->first();
 
-        if (!$user || !Hash::check($data['password'], $user->password)) {
+        if (!$user) {
+            Log::warning('LOGIN_FAILED_USER_NOT_FOUND', ['company_id' => $company->id, 'login' => $data['login']]);
+            throw new ApiException('auth.invalid_credentials', 401, 'INVALID_CREDENTIALS', [
+                'login' => [__('messages.auth.invalid_credentials')],
+            ]);
+        }
+
+        if (!Hash::check($data['password'], $user->password)) {
+            Log::warning('LOGIN_FAILED_BAD_PASSWORD', ['user_id' => $user->id, 'company_id' => $company->id]);
             throw new ApiException('auth.invalid_credentials', 401, 'INVALID_CREDENTIALS', [
                 'login' => [__('messages.auth.invalid_credentials')],
             ]);
         }
 
         if (!$user->is_active) {
+            Log::warning('LOGIN_FAILED_INACTIVE_USER', ['user_id' => $user->id, 'company_id' => $company->id]);
             throw new ApiException('auth.inactive_account', 403, 'INACTIVE_ACCOUNT');
         }
 
@@ -55,6 +76,12 @@ class AuthController extends Controller
         $token = $tokenResult->plainTextToken;
 
         AuditService::log('LOGIN', 'users', $user->id, 'User login');
+
+        Log::info('LOGIN_SUCCESS', [
+            'user_id' => $user->id,
+            'company_id' => $user->company_id,
+            'must_change_password' => $user->must_change_password,
+        ]);
 
         return ApiResponse::success([
             'token' => $token,
@@ -117,22 +144,41 @@ class AuthController extends Controller
 
     public function forgotPassword(ForgotPasswordRequest $request)
     {
-        $data = $request->validated();
-        $company = Company::where('code', $data['company_code'])->first();
-        if (!$company) {
+        try {
+            $data = $request->validated();
+            Log::info('FORGOT_PASSWORD_START', [
+                'company_code' => $data['company_code'],
+                'email' => $data['email'],
+                'ip' => $request->ip(),
+            ]);
+
+            $company = Company::where('code', $data['company_code'])->first();
+            if (!$company) {
+                Log::warning('FORGOT_PASSWORD_COMPANY_NOT_FOUND', ['company_code' => $data['company_code']]);
+                return ApiResponse::success(null, 'auth.otp_sent');
+            }
+            $user = User::where('company_id', $company->id)->where('email', $data['email'])->first();
+            if (!$user) {
+                Log::warning('FORGOT_PASSWORD_USER_NOT_FOUND', ['company_id' => $company->id, 'email' => $data['email']]);
+                return ApiResponse::success(null, 'auth.otp_sent');
+            }
+            $otp = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+            DB::table('password_reset_tokens')->updateOrInsert(
+                ['email' => $data['email']],
+                ['token' => $otp, 'created_at' => now()]
+            );
+            try {
+                Mail::to($data['email'])->send(new UserPasswordReset($otp));
+            } catch (\Throwable $e) {
+                Log::error('FORGOT_PASSWORD_MAIL_FAIL', ['email' => $data['email'], 'error' => $e->getMessage()]);
+            }
+            Log::info('FORGOT_PASSWORD_OTP_SENT', ['user_id' => $user->id, 'company_id' => $company->id]);
+            return ApiResponse::success(null, 'auth.otp_sent');
+        } catch (\Throwable $e) {
+            Log::error('FORGOT_PASSWORD_ERROR', ['error' => $e->getMessage(), 'trace' => collect(explode("\n", $e->getTraceAsString()))->take(5)->toArray()]);
+            // Toujours retourner un succès générique pour ne pas divulguer d'info
             return ApiResponse::success(null, 'auth.otp_sent');
         }
-        $user = User::where('company_id', $company->id)->where('email', $data['email'])->first();
-        if (!$user) {
-            return ApiResponse::success(null, 'auth.otp_sent');
-        }
-        $otp = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
-        DB::table('password_reset_tokens')->updateOrInsert(
-            ['email' => $data['email']],
-            ['token' => $otp, 'created_at' => now()]
-        );
-        Mail::to($data['email'])->send(new UserPasswordReset($otp));
-        return ApiResponse::success(null, 'auth.otp_sent');
     }
 
     public function resetPassword(ResetPasswordRequest $request)
@@ -160,6 +206,39 @@ class AuthController extends Controller
         return ApiResponse::success(null, 'auth.password_reset_success');
     }
 
+    public function resendOtp(ForgotPasswordRequest $request)
+    {
+        $data = $request->validated();
+        $key = sprintf('user-otp:%s:%s:%s', $data['company_code'], sha1($data['email']), request()->ip());
+        if (RateLimiter::tooManyAttempts($key, 3)) {
+            $seconds = RateLimiter::availableIn($key);
+            return ApiResponse::error('errors.too_many_requests', 429, 'RATE_LIMITED', [
+                'retry_after_seconds' => [$seconds],
+            ]);
+        }
+        RateLimiter::hit($key, 15 * 60);
+
+        $company = Company::where('code', $data['company_code'])->first();
+        if (!$company) {
+            return ApiResponse::success(null, 'auth.otp_sent');
+        }
+        $user = User::where('company_id', $company->id)->where('email', $data['email'])->first();
+        if (!$user) {
+            return ApiResponse::success(null, 'auth.otp_sent');
+        }
+        $otp = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+        DB::table('password_reset_tokens')->updateOrInsert(
+            ['email' => $data['email']],
+            ['token' => $otp, 'created_at' => now()]
+        );
+        try {
+            Mail::to($data['email'])->send(new UserPasswordReset($otp));
+        } catch (\Throwable $e) {
+            Log::error('RESEND_OTP_MAIL_FAIL', ['email' => $data['email'], 'error' => $e->getMessage()]);
+        }
+        return ApiResponse::success(null, 'auth.otp_sent');
+    }
+
     public function updateProfile(UpdateProfileRequest $request)
     {
         $user = $request->user();
@@ -184,6 +263,16 @@ class AuthController extends Controller
         $fresh = $user->fresh();
         AuditService::log('UPDATE_PROFILE', 'users', $fresh->id, 'User updated profile');
         return ApiResponse::success($fresh, 'auth.profile_updated');
+    }
+
+    public function logout(Request $request)
+    {
+        $token = $request->user()->currentAccessToken();
+        if ($token) {
+            $token->delete();
+        }
+        AuditService::log('LOGOUT', 'users', $request->user()->id, 'User logout');
+        return ApiResponse::success(null, 'auth.logout_success');
     }
 }
 
