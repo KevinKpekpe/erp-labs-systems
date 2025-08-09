@@ -7,6 +7,8 @@ use App\Http\Controllers\Api\SuperAdmin\PermissionController as SuperAdminPermis
 use App\Http\Controllers\Api\SuperAdmin\CompanyController as SuperAdminCompanyController;
 use App\Http\Controllers\Api\Admin\AuthController as AdminAuthController;
 use App\Http\Controllers\Api\Compagnies\CompanyController as UserCompanyController;
+use App\Http\Controllers\Api\Compagnies\RoleController as CompanyRoleController;
+use App\Http\Controllers\Api\Compagnies\UserController as CompanyUserController;
 
 // SuperAdmin Auth
 Route::prefix('v1/superadmin')->group(function () {
@@ -60,5 +62,23 @@ Route::prefix('v1')->group(function () {
         Route::post('/auth/profile', [AdminAuthController::class, 'updateProfile']);
         Route::post('/company', [UserCompanyController::class, 'updateMyCompany'])
             ->middleware('can.permission:UPDATE,COMPANY');
+
+        // Company Roles (permissions attached)
+        Route::get('/roles', [CompanyRoleController::class, 'index'])->middleware('can.permission:LIST,ROLE');
+        Route::post('/roles', [CompanyRoleController::class, 'store'])->middleware('can.permission:CREATE,ROLE');
+        Route::put('/roles/{role}', [CompanyRoleController::class, 'update'])->middleware('can.permission:UPDATE,ROLE');
+        Route::delete('/roles/{role}', [CompanyRoleController::class, 'destroy'])->middleware('can.permission:DELETE,ROLE');
+        Route::get('/roles-trashed', [CompanyRoleController::class, 'trashed'])->middleware('can.permission:LIST,ROLE');
+        Route::post('/roles/{id}/restore', [CompanyRoleController::class, 'restore'])->middleware('can.permission:UPDATE,ROLE');
+        Route::delete('/roles/{id}/force', [CompanyRoleController::class, 'forceDelete'])->middleware('can.permission:DELETE,ROLE');
+
+        // Company Users (1 role only)
+        Route::get('/users', [CompanyUserController::class, 'index'])->middleware('can.permission:LIST,USER');
+        Route::post('/users', [CompanyUserController::class, 'store'])->middleware('can.permission:CREATE,USER');
+        Route::post('/users/{user}', [CompanyUserController::class, 'update'])->middleware('can.permission:UPDATE,USER');
+        Route::delete('/users/{user}', [CompanyUserController::class, 'destroy'])->middleware('can.permission:DELETE,USER');
+        Route::get('/users-trashed', [CompanyUserController::class, 'trashed'])->middleware('can.permission:LIST,USER');
+        Route::post('/users/{id}/restore', [CompanyUserController::class, 'restore'])->middleware('can.permission:UPDATE,USER');
+        Route::delete('/users/{id}/force', [CompanyUserController::class, 'forceDelete'])->middleware('can.permission:DELETE,USER');
     });
 });
