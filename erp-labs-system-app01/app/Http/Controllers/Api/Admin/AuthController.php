@@ -17,6 +17,7 @@ use Illuminate\Support\Facades\Mail;
 use App\Mail\UserPasswordReset;
 use App\Http\Requests\Admin\UpdateProfileRequest;
 use Illuminate\Support\Facades\Storage;
+use App\Services\AuditService;
 
 class AuthController extends Controller
 {
@@ -47,8 +48,13 @@ class AuthController extends Controller
             throw new ApiException('auth.inactive_account', 403, 'INACTIVE_ACCOUNT');
         }
 
+        // Mettre à jour la dernière connexion
+        $user->update(['last_login' => now()]);
+
         $tokenResult = $user->createToken('admin');
         $token = $tokenResult->plainTextToken;
+
+        AuditService::log('LOGIN', 'users', $user->id, 'User login');
 
         return ApiResponse::success([
             'token' => $token,
@@ -74,6 +80,7 @@ class AuthController extends Controller
         $user->update(['password' => Hash::make($data['new_password']), 'must_change_password' => false]);
         // Optionnel: invalider les autres tokens
         $user->tokens()->where('id', '!=', $request->user()->currentAccessToken()->id)->delete();
+        AuditService::log('CHANGE_PASSWORD', 'users', $user->id, 'User changed password');
         return ApiResponse::success(null, 'auth.password_changed');
     }
 
@@ -174,7 +181,9 @@ class AuthController extends Controller
             $payload['photo_de_profil'] = $path;
         }
         $user->fill($payload)->save();
-        return ApiResponse::success($user->fresh(), 'auth.profile_updated');
+        $fresh = $user->fresh();
+        AuditService::log('UPDATE_PROFILE', 'users', $fresh->id, 'User updated profile');
+        return ApiResponse::success($fresh, 'auth.profile_updated');
     }
 }
 
