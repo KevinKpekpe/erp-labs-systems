@@ -11,6 +11,12 @@ use App\Support\ApiResponse;
 use Illuminate\Support\Facades\Hash;
 use App\Http\Requests\Admin\ChangePasswordRequest;
 use Illuminate\Support\Facades\DB;
+use App\Http\Requests\Admin\ForgotPasswordRequest;
+use App\Http\Requests\Admin\ResetPasswordRequest;
+use Illuminate\Support\Facades\Mail;
+use App\Mail\UserPasswordReset;
+use App\Http\Requests\Admin\UpdateProfileRequest;
+use Illuminate\Support\Facades\Storage;
 
 class AuthController extends Controller
 {
@@ -21,6 +27,9 @@ class AuthController extends Controller
         $company = Company::where('code', $data['company_code'])->first();
         if (!$company) {
             throw new ApiException('errors.not_found', 404, 'COMPANY_NOT_FOUND');
+        }
+        if ($company->deleted_at) {
+            throw new ApiException('errors.forbidden', 403, 'COMPANY_DELETED');
         }
 
         $user = User::where('company_id', $company->id)
@@ -97,6 +106,75 @@ class AuthController extends Controller
             'roles' => $roles,
             'permissions' => $permissions,
         ], 'auth.me_success');
+    }
+
+    public function forgotPassword(ForgotPasswordRequest $request)
+    {
+        $data = $request->validated();
+        $company = Company::where('code', $data['company_code'])->first();
+        if (!$company) {
+            return ApiResponse::success(null, 'auth.otp_sent');
+        }
+        $user = User::where('company_id', $company->id)->where('email', $data['email'])->first();
+        if (!$user) {
+            return ApiResponse::success(null, 'auth.otp_sent');
+        }
+        $otp = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+        DB::table('password_reset_tokens')->updateOrInsert(
+            ['email' => $data['email']],
+            ['token' => $otp, 'created_at' => now()]
+        );
+        Mail::to($data['email'])->send(new UserPasswordReset($otp));
+        return ApiResponse::success(null, 'auth.otp_sent');
+    }
+
+    public function resetPassword(ResetPasswordRequest $request)
+    {
+        $data = $request->validated();
+        $company = Company::where('code', $data['company_code'])->first();
+        if (!$company) {
+            throw new ApiException('errors.not_found', 404, 'COMPANY_NOT_FOUND');
+        }
+        $row = DB::table('password_reset_tokens')->where('email', $data['email'])->first();
+        if (!$row || !hash_equals($row->token, $data['otp'])) {
+            throw new ApiException('auth.token_invalid', 401, 'TOKEN_INVALID');
+        }
+        if (now()->diffInMinutes($row->created_at) > 15) {
+            throw new ApiException('auth.token_expired', 401, 'TOKEN_EXPIRED');
+        }
+        $user = User::where('company_id', $company->id)->where('email', $data['email'])->first();
+        if (!$user) {
+            throw new ApiException('errors.not_found', 404, 'USER_NOT_FOUND');
+        }
+        $user->update(['password' => Hash::make($data['new_password']), 'must_change_password' => false]);
+        DB::table('password_reset_tokens')->where('email', $data['email'])->delete();
+        // Invalider les tokens actifs
+        $user->tokens()->delete();
+        return ApiResponse::success(null, 'auth.password_reset_success');
+    }
+
+    public function updateProfile(UpdateProfileRequest $request)
+    {
+        $user = $request->user();
+        $data = $request->validated();
+        $payload = [];
+        foreach (['username','email','telephone','sexe'] as $f) {
+            if ($request->has($f)) { $payload[$f] = $request->input($f); }
+        }
+        if (($data['remove_photo'] ?? false) === true) {
+            if ($user->photo_de_profil && Storage::disk('public')->exists($user->photo_de_profil)) {
+                Storage::disk('public')->delete($user->photo_de_profil);
+            }
+            $payload['photo_de_profil'] = null;
+        } elseif ($request->hasFile('photo_de_profil')) {
+            $path = $request->file('photo_de_profil')->store('users', 'public');
+            if ($user->photo_de_profil && Storage::disk('public')->exists($user->photo_de_profil)) {
+                Storage::disk('public')->delete($user->photo_de_profil);
+            }
+            $payload['photo_de_profil'] = $path;
+        }
+        $user->fill($payload)->save();
+        return ApiResponse::success($user->fresh(), 'auth.profile_updated');
     }
 }
 

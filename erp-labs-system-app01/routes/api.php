@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\SuperAdmin\ProfileController as SuperAdminProfileCo
 use App\Http\Controllers\Api\SuperAdmin\PermissionController as SuperAdminPermissionController;
 use App\Http\Controllers\Api\SuperAdmin\CompanyController as SuperAdminCompanyController;
 use App\Http\Controllers\Api\Admin\AuthController as AdminAuthController;
+use App\Http\Controllers\Api\Compagnies\CompanyController as UserCompanyController;
 
 // SuperAdmin Auth
 Route::prefix('v1/superadmin')->group(function () {
@@ -45,11 +46,17 @@ Route::prefix('v1/superadmin')->group(function () {
     Route::post('/resend-otp', [SuperAdminProfileController::class, 'resendOtp']);
 });
 
-// Users (Company admins/employés) Auth
+//Auth
 Route::prefix('v1')->group(function () {
     Route::post('/auth/login', [AdminAuthController::class, 'login']);
+    // Public password reset
+    Route::post('/auth/forgot-password', [AdminAuthController::class, 'forgotPassword']);
+    Route::post('/auth/reset-password', [AdminAuthController::class, 'resetPassword']);
     Route::middleware(['auth:sanctum','must.change.password'])->group(function () {
         Route::post('/auth/change-password', [AdminAuthController::class, 'changePassword']);
         Route::get('/auth/me', [AdminAuthController::class, 'me']);
+        Route::post('/auth/profile', [AdminAuthController::class, 'updateProfile']);
+        Route::post('/company', [UserCompanyController::class, 'updateMyCompany'])
+            ->middleware('can.permission:UPDATE,COMPANY');
     });
 });
