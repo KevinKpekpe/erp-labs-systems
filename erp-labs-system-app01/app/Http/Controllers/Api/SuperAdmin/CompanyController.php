@@ -31,20 +31,28 @@ class CompanyController extends Controller
         $data = $request->validated();
 
         try {
-            $company = DB::transaction(function () use ($data) {
+            $company = DB::transaction(function () use ($data, $request) {
             // 1) Créer la compagnie (code auto via trigger MySQL si activé)
-            $company = Company::create([
-                'nom_company' => $data['nom_company'],
-                'adresse' => $data['adresse'],
-                'email' => $data['email'] ?? null,
-                'contact' => $data['contact'],
-                'logo' => null,
-                'secteur_activite' => $data['secteur_activite'] ?? null,
-                'type_etablissement' => $data['type_etablissement'],
-                'description' => $data['description'] ?? null,
-            ]);
+                $logoPath = null;
+                if ($request->hasFile('logo')) {
+                    $logoPath = $request->file('logo')->store('companies', 'public');
+                }
 
-            // Si le code n'a pas été défini (ex: pas de trigger), générer un code ENTIER depuis la séquence
+                $company = Company::create([
+                    'nom_company' => $data['nom_company'],
+                    'adresse' => $data['adresse'],
+                    'email' => $data['email'] ?? null,
+                    'contact' => $data['contact'],
+                    'logo' => $logoPath,
+                    'secteur_activite' => $data['secteur_activite'] ?? null,
+                    'type_etablissement' => $data['type_etablissement'],
+                    'description' => $data['description'] ?? null,
+                ]);
+
+                // Rafraîchir pour récupérer la valeur définie par le trigger
+                $company->refresh();
+
+                // Si le code n'a pas été défini (ex: pas de trigger), générer un code ENTIER depuis la séquence
             if (is_null($company->code)) {
                 $seq = DB::table('company_code_sequence')->where('id', 1)->lockForUpdate()->first();
                 if (!$seq) {
