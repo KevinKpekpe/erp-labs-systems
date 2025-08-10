@@ -5,10 +5,11 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use App\Models\Concerns\Searchable;
 
 class Article extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory, SoftDeletes, Searchable;
 
     protected $table = 'articles';
 
@@ -21,6 +22,11 @@ class Article extends Model
         'fournisseur',
         'prix_unitaire',
         'unite_mesure',
+    ];
+
+    /** @var list<string> */
+    protected array $searchable = [
+        'code', 'nom_article', 'description', 'fournisseur', 'unite_mesure'
     ];
 }
 

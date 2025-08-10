@@ -9,6 +9,8 @@ use App\Http\Controllers\Api\Admin\AuthController as AdminAuthController;
 use App\Http\Controllers\Api\Compagnies\CompanyController as UserCompanyController;
 use App\Http\Controllers\Api\Compagnies\RoleController as CompanyRoleController;
 use App\Http\Controllers\Api\Compagnies\UserController as CompanyUserController;
+use App\Http\Controllers\Api\Compagnies\Stock\CategoryController as StockCategoryController;
+use App\Http\Controllers\Api\Compagnies\Stock\ArticleController as StockArticleController;
 
 // SuperAdmin Auth
 Route::prefix('v1/superadmin')->group(function () {
@@ -81,5 +83,25 @@ Route::prefix('v1')->group(function () {
         Route::get('/users-trashed', [CompanyUserController::class, 'trashed'])->middleware('can.permission:LIST,USER');
         Route::post('/users/{id}/restore', [CompanyUserController::class, 'restore'])->middleware('can.permission:UPDATE,USER');
         Route::delete('/users/{id}/force', [CompanyUserController::class, 'forceDelete'])->middleware('can.permission:DELETE,USER');
+
+        // Stock - Categories
+        Route::get('/stock/categories', [StockCategoryController::class, 'index'])->middleware('can.permission:LIST,STOCK');
+        Route::post('/stock/categories', [StockCategoryController::class, 'store'])->middleware('can.permission:CREATE,STOCK');
+        Route::get('/stock/categories/{category}', [StockCategoryController::class, 'show'])->middleware('can.permission:LIST,STOCK');
+        Route::put('/stock/categories/{category}', [StockCategoryController::class, 'update'])->middleware('can.permission:UPDATE,STOCK');
+        Route::delete('/stock/categories/{category}', [StockCategoryController::class, 'destroy'])->middleware('can.permission:DELETE,STOCK');
+        Route::get('/stock/categories-trashed', [StockCategoryController::class, 'trashed'])->middleware('can.permission:LIST,STOCK');
+        Route::post('/stock/categories/{id}/restore', [StockCategoryController::class, 'restore'])->middleware('can.permission:UPDATE,STOCK');
+        Route::delete('/stock/categories/{id}/force', [StockCategoryController::class, 'forceDelete'])->middleware('can.permission:DELETE,STOCK');
+
+        // Stock - Articles
+        Route::get('/stock/articles', [StockArticleController::class, 'index'])->middleware('can.permission:LIST,STOCK');
+        Route::post('/stock/articles', [StockArticleController::class, 'store'])->middleware('can.permission:CREATE,STOCK');
+        Route::get('/stock/articles/{article}', [StockArticleController::class, 'show'])->middleware('can.permission:LIST,STOCK');
+        Route::put('/stock/articles/{article}', [StockArticleController::class, 'update'])->middleware('can.permission:UPDATE,STOCK');
+        Route::delete('/stock/articles/{article}', [StockArticleController::class, 'destroy'])->middleware('can.permission:DELETE,STOCK');
+        Route::get('/stock/articles-trashed', [StockArticleController::class, 'trashed'])->middleware('can.permission:LIST,STOCK');
+        Route::post('/stock/articles/{id}/restore', [StockArticleController::class, 'restore'])->middleware('can.permission:UPDATE,STOCK');
+        Route::delete('/stock/articles/{id}/force', [StockArticleController::class, 'forceDelete'])->middleware('can.permission:DELETE,STOCK');
     });
 });
