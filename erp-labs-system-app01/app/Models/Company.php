@@ -5,10 +5,11 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use App\Models\Concerns\Searchable;
 
 class Company extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory, SoftDeletes, Searchable;
 
     protected $table = 'companies';
 
@@ -22,6 +23,11 @@ class Company extends Model
         'secteur_activite',
         'type_etablissement',
         'description',
+    ];
+
+    /** @var list<string> */
+    protected array $searchable = [
+        'code', 'nom_company', 'adresse', 'email', 'contact', 'secteur_activite', 'type_etablissement', 'description'
     ];
 
     // Relations

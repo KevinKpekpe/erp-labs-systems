@@ -16,7 +16,11 @@ class RoleController extends Controller
     public function index()
     {
         $companyId = request()->user()->company_id;
-        $roles = Role::where('company_id', $companyId)->orderBy('nom_role')->get();
+        $q = request('q') ?? request('search');
+        $roles = Role::where('company_id', $companyId)
+            ->search($q)
+            ->orderBy('nom_role')
+            ->get();
         return ApiResponse::success($roles);
     }
 
@@ -106,7 +110,10 @@ class RoleController extends Controller
     public function trashed()
     {
         $companyId = request()->user()->company_id;
-        $roles = Role::onlyTrashed()->where('company_id', $companyId)->get();
+        $q = request('q') ?? request('search');
+        $roles = Role::onlyTrashed()->where('company_id', $companyId)
+            ->search($q)
+            ->get();
         return ApiResponse::success($roles, 'permissions.trashed');
     }
 

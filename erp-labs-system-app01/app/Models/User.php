@@ -8,11 +8,12 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use App\Models\Concerns\Searchable;
 
 class User extends Authenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasApiTokens, HasFactory, Notifiable, SoftDeletes;
+    use HasApiTokens, HasFactory, Notifiable, SoftDeletes, Searchable;
 
     /**
      * The attributes that are mass assignable.
@@ -26,6 +27,8 @@ class User extends Authenticatable
         'company_id',
         'code',
         'username',
+        'nom',
+        'postnom',
         'password',
         'email',
         'telephone',
@@ -35,6 +38,11 @@ class User extends Authenticatable
         'is_active',
         'preferred_locale',
         'must_change_password',
+    ];
+
+    /** @var list<string> */
+    protected array $searchable = [
+        'code', 'username', 'nom', 'postnom', 'email', 'telephone', 'sexe', 'preferred_locale'
     ];
 
     /**

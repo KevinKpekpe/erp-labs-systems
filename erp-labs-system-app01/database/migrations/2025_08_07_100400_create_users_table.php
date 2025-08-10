@@ -13,6 +13,8 @@ return new class extends Migration
             $table->foreignId('company_id')->constrained('companies');
             $table->string('code', 50)->unique();
             $table->string('username', 100)->unique();
+            $table->string('nom', 100)->nullable();
+            $table->string('postnom', 100)->nullable();
             $table->string('password', 255);
             $table->string('email', 255)->unique();
             $table->string('telephone', 50)->nullable();

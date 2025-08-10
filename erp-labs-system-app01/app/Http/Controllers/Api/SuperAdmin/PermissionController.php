@@ -13,7 +13,11 @@ class PermissionController extends Controller
 {
     public function index()
     {
-        $permissions = Permission::orderBy('module')->orderBy('action')->get();
+        $q = request('q') ?? request('search');
+        $permissions = Permission::search($q)
+            ->orderBy('module')
+            ->orderBy('action')
+            ->get();
         return ApiResponse::success($permissions, 'auth.me_success');
     }
 
@@ -42,7 +46,12 @@ class PermissionController extends Controller
 
     public function trashed()
     {
-        $permissions = Permission::onlyTrashed()->orderBy('module')->orderBy('action')->get();
+        $q = request('q') ?? request('search');
+        $permissions = Permission::onlyTrashed()
+            ->search($q)
+            ->orderBy('module')
+            ->orderBy('action')
+            ->get();
         return ApiResponse::success($permissions, 'permissions.trashed');
     }
 

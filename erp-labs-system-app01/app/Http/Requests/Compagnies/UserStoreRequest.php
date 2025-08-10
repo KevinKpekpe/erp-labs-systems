@@ -12,9 +12,14 @@ class UserStoreRequest extends FormRequest
     {
         return [
             'username' => ['required', 'string', 'max:100'],
+            'nom' => ['sometimes', 'string', 'max:100'],
+            'postnom' => ['sometimes', 'string', 'max:100'],
             'email' => ['required', 'email', 'max:255'],
             'role_id' => ['required', 'integer'],
+            'telephone' => ['sometimes', 'string', 'max:50'],
+            'sexe' => ['sometimes', 'in:M,F'],
             'photo_de_profil' => ['sometimes', 'file', 'image', 'max:2048'],
+            'photo' => ['sometimes', 'file', 'image', 'max:2048'],
         ];
     }
 }

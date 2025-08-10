@@ -20,7 +20,11 @@ class UserController extends Controller
     public function index()
     {
         $companyId = request()->user()->company_id;
-        $users = User::where('company_id', $companyId)->orderBy('username')->get();
+        $q = request('q') ?? request('search');
+        $users = User::where('company_id', $companyId)
+            ->search($q)
+            ->orderBy('username')
+            ->get();
         return ApiResponse::success($users);
     }
 
@@ -35,15 +39,20 @@ class UserController extends Controller
 
         $user = DB::transaction(function () use ($companyId, $data, $role, $tempPassword, $request) {
             $photo = null;
-            if ($request->hasFile('photo_de_profil')) {
-                $photo = $request->file('photo_de_profil')->store('users', 'public');
+            $uploadedPhoto = $request->file('photo_de_profil') ?? $request->file('photo');
+            if ($uploadedPhoto) {
+                $photo = $uploadedPhoto->store('users', 'public');
             }
             $user = User::create([
                 'company_id' => $companyId,
                 'code' => CodeGenerator::generate('users', $companyId, 'USR'),
                 'username' => $data['username'],
+                'nom' => $data['nom'] ?? null,
+                'postnom' => $data['postnom'] ?? null,
                 'email' => $data['email'],
                 'password' => Hash::make($tempPassword),
+                'telephone' => $data['telephone'] ?? null,
+                'sexe' => $data['sexe'] ?? null,
                 'is_active' => true,
                 'must_change_password' => true,
                 'photo_de_profil' => $photo,
@@ -71,7 +80,7 @@ class UserController extends Controller
 
         DB::transaction(function () use ($user, $companyId, $data, $request) {
             $payload = [];
-            foreach (['username','email','is_active'] as $f) {
+            foreach (['username','email','is_active','telephone','sexe','nom','postnom'] as $f) {
                 if (array_key_exists($f, $data)) { $payload[$f] = $data[$f]; }
             }
             // Photo upload/removal
@@ -79,11 +88,12 @@ class UserController extends Controller
                 Storage::disk('public')->delete($user->photo_de_profil);
                 $payload['photo_de_profil'] = null;
             }
-            if ($request->hasFile('photo_de_profil')) {
+            $uploadedPhoto = $request->file('photo_de_profil') ?? $request->file('photo');
+            if ($uploadedPhoto) {
                 if ($user->photo_de_profil) {
                     Storage::disk('public')->delete($user->photo_de_profil);
                 }
-                $payload['photo_de_profil'] = $request->file('photo_de_profil')->store('users', 'public');
+                $payload['photo_de_profil'] = $uploadedPhoto->store('users', 'public');
             }
             if ($payload) { $user->update($payload); }
             if (array_key_exists('role_id', $data)) {

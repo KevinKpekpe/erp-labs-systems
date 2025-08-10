@@ -22,7 +22,10 @@ class CompanyController extends Controller
 {
     public function index()
     {
-        $companies = Company::orderBy('id', 'desc')->get();
+        $q = request('q') ?? request('search');
+        $companies = Company::search($q)
+            ->orderBy('id', 'desc')
+            ->get();
         return ApiResponse::success($companies, 'auth.me_success');
     }
 
@@ -167,7 +170,9 @@ class CompanyController extends Controller
 
     public function trashed()
     {
-        return ApiResponse::success(Company::onlyTrashed()->get(), 'company.trashed');
+        $q = request('q') ?? request('search');
+        $companies = Company::onlyTrashed()->search($q)->get();
+        return ApiResponse::success($companies, 'company.trashed');
     }
 
     public function restore($id)
