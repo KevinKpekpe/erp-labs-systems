@@ -65,6 +65,7 @@ Route::prefix('v1')->group(function () {
 
         // Company Roles (permissions attached)
         Route::get('/roles', [CompanyRoleController::class, 'index'])->middleware('can.permission:LIST,ROLE');
+        Route::get('/roles/{role}', [CompanyRoleController::class, 'show'])->middleware('can.permission:LIST,ROLE');
         Route::post('/roles', [CompanyRoleController::class, 'store'])->middleware('can.permission:CREATE,ROLE');
         Route::put('/roles/{role}', [CompanyRoleController::class, 'update'])->middleware('can.permission:UPDATE,ROLE');
         Route::delete('/roles/{role}', [CompanyRoleController::class, 'destroy'])->middleware('can.permission:DELETE,ROLE');

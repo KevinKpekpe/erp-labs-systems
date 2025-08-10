@@ -20,6 +20,15 @@ class RoleController extends Controller
         return ApiResponse::success($roles);
     }
 
+    public function show(Role $role)
+    {
+        $this->authorizeRole($role);
+        $role->load(['permissions' => function ($q) {
+            $q->select('permissions.id', 'permissions.code', 'permissions.action', 'permissions.module');
+        }]);
+        return ApiResponse::success($role, 'permissions.details');
+    }
+
     public function store(RoleStoreRequest $request)
     {
         $companyId = $request->user()->company_id;
@@ -33,7 +42,7 @@ class RoleController extends Controller
             ]);
 
             if (!empty($data['permissions'])) {
-                $permissionIds = Permission::whereIn('code', $data['permissions'])->pluck('id')->all();
+                $permissionIds = array_values(array_unique(array_map('intval', $data['permissions'])));
                 $pivot = [];
                 foreach ($permissionIds as $pid) {
                     $pivot[] = [
@@ -67,7 +76,7 @@ class RoleController extends Controller
             if (array_key_exists('permissions', $data)) {
                 DB::table('role_permissions')->where('company_id', $companyId)->where('role_id', $role->id)->delete();
                 if (!empty($data['permissions'])) {
-                    $permissionIds = Permission::whereIn('code', $data['permissions'])->pluck('id')->all();
+                    $permissionIds = array_values(array_unique(array_map('intval', $data['permissions'])));
                     $pivot = [];
                     foreach ($permissionIds as $pid) {
                         $pivot[] = [
@@ -123,6 +132,7 @@ class RoleController extends Controller
             abort(403);
         }
     }
+
 }
 
 
