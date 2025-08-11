@@ -18,6 +18,8 @@ use App\Http\Controllers\Api\Compagnies\Patients\DoctorController;
 use App\Http\Controllers\Api\Compagnies\Patients\PatientController;
 use App\Http\Controllers\Api\Compagnies\Exams\ExamController;
 use App\Http\Controllers\Api\Compagnies\Exams\ExamRequestController;
+use App\Http\Controllers\Api\Compagnies\Billing\PaymentController;
+use App\Http\Controllers\Api\Compagnies\Billing\InvoiceController;
 
 // SuperAdmin Auth
 Route::prefix('v1/superadmin')->group(function () {
@@ -171,5 +173,13 @@ Route::prefix('v1')->group(function () {
         Route::get('/exam-requests/{examRequest}', [ExamRequestController::class, 'show'])->middleware('can.permission:LIST,DEMANDE');
         Route::put('/exam-requests/{examRequest}', [ExamRequestController::class, 'update'])->middleware('can.permission:UPDATE,DEMANDE');
         Route::delete('/exam-requests/{examRequest}', [ExamRequestController::class, 'destroy'])->middleware('can.permission:DELETE,DEMANDE');
+
+        // Payments
+        Route::get('/payments', [PaymentController::class, 'index'])->middleware('can.permission:LIST,PAYMENT');
+        Route::post('/payments', [PaymentController::class, 'store'])->middleware('can.permission:CREATE,PAYMENT');
+
+        // Invoices
+        Route::get('/invoices', [InvoiceController::class, 'index'])->middleware('can.permission:LIST,INVOICE');
+        Route::get('/invoices/{invoice}', [InvoiceController::class, 'show'])->middleware('can.permission:LIST,INVOICE');
     });
 });

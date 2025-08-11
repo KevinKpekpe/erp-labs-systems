@@ -19,6 +19,15 @@ class InvoiceDetail extends Model
         'examen_id',
         'prix_unitaire_facture',
     ];
-}
 
+    public function invoice()
+    {
+        return $this->belongsTo(Invoice::class, 'facture_id');
+    }
+
+    public function exam()
+    {
+        return $this->belongsTo(Exam::class, 'examen_id');
+    }
+}
 
