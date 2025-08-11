@@ -28,6 +28,12 @@ class Article extends Model
     protected array $searchable = [
         'code', 'nom_article', 'description', 'fournisseur', 'unite_mesure'
     ];
+
+    // Relations
+    public function category()
+    {
+        return $this->belongsTo(CategoryArticle::class, 'categorie_id');
+    }
 }
 
 

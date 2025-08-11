@@ -5,10 +5,11 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use App\Models\Concerns\Searchable;
 
 class Stock extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory, SoftDeletes, Searchable;
 
     protected $table = 'stocks';
 
@@ -19,6 +20,16 @@ class Stock extends Model
         'quantite_actuelle',
         'seuil_critique',
     ];
+
+    /** @var list<string> */
+    protected array $searchable = [
+        'code'
+    ];
+
+    public function article()
+    {
+        return $this->belongsTo(Article::class);
+    }
 }
 
 

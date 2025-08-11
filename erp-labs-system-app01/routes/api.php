@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\Compagnies\RoleController as CompanyRoleController;
 use App\Http\Controllers\Api\Compagnies\UserController as CompanyUserController;
 use App\Http\Controllers\Api\Compagnies\Stock\CategoryController as StockCategoryController;
 use App\Http\Controllers\Api\Compagnies\Stock\ArticleController as StockArticleController;
+use App\Http\Controllers\Api\Compagnies\Stock\StockController as StockStockController;
 
 // SuperAdmin Auth
 Route::prefix('v1/superadmin')->group(function () {
@@ -103,5 +104,15 @@ Route::prefix('v1')->group(function () {
         Route::get('/stock/articles-trashed', [StockArticleController::class, 'trashed'])->middleware('can.permission:LIST,STOCK');
         Route::post('/stock/articles/{id}/restore', [StockArticleController::class, 'restore'])->middleware('can.permission:UPDATE,STOCK');
         Route::delete('/stock/articles/{id}/force', [StockArticleController::class, 'forceDelete'])->middleware('can.permission:DELETE,STOCK');
+
+        // Stock - Stocks
+        Route::get('/stock/stocks', [StockStockController::class, 'index'])->middleware('can.permission:LIST,STOCK');
+        Route::post('/stock/stocks', [StockStockController::class, 'store'])->middleware('can.permission:CREATE,STOCK');
+        Route::get('/stock/stocks/{stock}', [StockStockController::class, 'show'])->middleware('can.permission:LIST,STOCK');
+        Route::put('/stock/stocks/{stock}', [StockStockController::class, 'update'])->middleware('can.permission:UPDATE,STOCK');
+        Route::delete('/stock/stocks/{stock}', [StockStockController::class, 'destroy'])->middleware('can.permission:DELETE,STOCK');
+        Route::get('/stock/stocks-trashed', [StockStockController::class, 'trashed'])->middleware('can.permission:LIST,STOCK');
+        Route::post('/stock/stocks/{id}/restore', [StockStockController::class, 'restore'])->middleware('can.permission:UPDATE,STOCK');
+        Route::delete('/stock/stocks/{id}/force', [StockStockController::class, 'forceDelete'])->middleware('can.permission:DELETE,STOCK');
     });
 });

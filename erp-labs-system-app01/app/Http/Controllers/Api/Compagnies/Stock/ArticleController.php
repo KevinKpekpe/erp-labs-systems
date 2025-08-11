@@ -21,6 +21,7 @@ class ArticleController extends Controller
         $dir = request('dir', 'asc') === 'desc' ? 'desc' : 'asc';
 
         $articles = Article::where('company_id', $companyId)
+            ->with(['category:id,nom_categorie'])
             ->search($q)
             ->orderBy($sort, $dir)
             ->paginate($perPage);
@@ -53,6 +54,7 @@ class ArticleController extends Controller
     public function show(Article $article)
     {
         $this->authorizeArticle($article);
+        $article->load(['category:id,nom_categorie']);
         return ApiResponse::success($article, 'stock.articles.details');
     }
 
