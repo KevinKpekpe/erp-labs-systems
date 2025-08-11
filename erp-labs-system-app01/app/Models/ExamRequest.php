@@ -5,10 +5,11 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use App\Models\Concerns\Searchable;
 
 class ExamRequest extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory, SoftDeletes, Searchable;
 
     protected $table = 'demande_examens';
 
@@ -22,6 +23,11 @@ class ExamRequest extends Model
         'date_demande',
         'statut_demande',
         'note',
+    ];
+
+    /** @var list<string> */
+    protected array $searchable = [
+        'code', 'statut_demande', 'note'
     ];
 
     public function patient()
