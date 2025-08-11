@@ -46,14 +46,20 @@ class ExamController extends Controller
             ]);
 
             if (!empty($data['articles'])) {
-                $pivot = [];
+                $rows = [];
                 foreach ($data['articles'] as $item) {
-                    // Validation de cohérence multi-tenant via existence de l'article
                     $article = Article::where('company_id', $companyId)->findOrFail($item['article_id']);
-                    $pivot[$article->id] = ['quantite_utilisee' => (float) $item['quantite_utilisee']];
+                    $rows[] = [
+                        'company_id' => $companyId,
+                        'examen_id' => $exam->id,
+                        'article_id' => $article->id,
+                        'quantite_utilisee' => (float) $item['quantite_utilisee'],
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ];
                 }
-                if ($pivot) {
-                    $exam->articles()->sync($pivot);
+                if ($rows) {
+                    DB::table('examen_articles')->insert($rows);
                 }
             }
 
@@ -86,14 +92,29 @@ class ExamController extends Controller
             if ($payload) { $exam->update($payload); }
 
             if (array_key_exists('articles', $data)) {
-                $pivot = [];
+                // Supprimer les lignes existantes pour cet examen/compagnie
+                DB::table('examen_articles')
+                    ->where('company_id', $exam->company_id)
+                    ->where('examen_id', $exam->id)
+                    ->delete();
+
                 if (!empty($data['articles'])) {
+                    $rows = [];
                     foreach ($data['articles'] as $item) {
                         $article = Article::where('company_id', $exam->company_id)->findOrFail($item['article_id']);
-                        $pivot[$article->id] = ['quantite_utilisee' => (float) $item['quantite_utilisee']];
+                        $rows[] = [
+                            'company_id' => $exam->company_id,
+                            'examen_id' => $exam->id,
+                            'article_id' => $article->id,
+                            'quantite_utilisee' => (float) $item['quantite_utilisee'],
+                            'created_at' => now(),
+                            'updated_at' => now(),
+                        ];
+                    }
+                    if ($rows) {
+                        DB::table('examen_articles')->insert($rows);
                     }
                 }
-                $exam->articles()->sync($pivot);
             }
         });
 
