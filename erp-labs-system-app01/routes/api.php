@@ -16,6 +16,7 @@ use App\Http\Controllers\Api\Compagnies\Stock\MovementController as StockMovemen
 use App\Http\Controllers\Api\Compagnies\Patients\PatientTypeController;
 use App\Http\Controllers\Api\Compagnies\Patients\DoctorController;
 use App\Http\Controllers\Api\Compagnies\Patients\PatientController;
+use App\Http\Controllers\Api\Compagnies\Exams\ExamController;
 
 // SuperAdmin Auth
 Route::prefix('v1/superadmin')->group(function () {
@@ -152,5 +153,15 @@ Route::prefix('v1')->group(function () {
         Route::get('/patients-trashed', [PatientController::class, 'trashed'])->middleware('can.permission:LIST,PATIENT');
         Route::post('/patients/{id}/restore', [PatientController::class, 'restore'])->middleware('can.permission:UPDATE,PATIENT');
         Route::delete('/patients/{id}/force', [PatientController::class, 'forceDelete'])->middleware('can.permission:DELETE,PATIENT');
+
+        // Exams
+        Route::get('/exams', [ExamController::class, 'index'])->middleware('can.permission:LIST,EXAM');
+        Route::post('/exams', [ExamController::class, 'store'])->middleware('can.permission:CREATE,EXAM');
+        Route::get('/exams/{exam}', [ExamController::class, 'show'])->middleware('can.permission:LIST,EXAM');
+        Route::put('/exams/{exam}', [ExamController::class, 'update'])->middleware('can.permission:UPDATE,EXAM');
+        Route::delete('/exams/{exam}', [ExamController::class, 'destroy'])->middleware('can.permission:DELETE,EXAM');
+        Route::get('/exams-trashed', [ExamController::class, 'trashed'])->middleware('can.permission:LIST,EXAM');
+        Route::post('/exams/{id}/restore', [ExamController::class, 'restore'])->middleware('can.permission:UPDATE,EXAM');
+        Route::delete('/exams/{id}/force', [ExamController::class, 'forceDelete'])->middleware('can.permission:DELETE,EXAM');
     });
 });

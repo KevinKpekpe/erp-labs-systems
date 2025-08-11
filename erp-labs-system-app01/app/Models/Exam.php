@@ -5,10 +5,11 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use App\Models\Concerns\Searchable;
 
 class Exam extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory, SoftDeletes, Searchable;
 
     protected $table = 'examens';
 
@@ -25,6 +26,17 @@ class Exam extends Model
         'conditions_pre_analytiques',
         'equipement_reactifs_necessaires',
     ];
+
+    /** @var list<string> */
+    protected array $searchable = [
+        'code', 'nom_examen', 'description', 'type_echantillon'
+    ];
+
+    public function articles()
+    {
+        return $this->belongsToMany(Article::class, 'examen_articles', 'examen_id', 'article_id')
+            ->withPivot('quantite_utilisee');
+    }
 }
 
 
