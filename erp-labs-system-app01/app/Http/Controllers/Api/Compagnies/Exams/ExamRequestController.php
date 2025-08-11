@@ -13,6 +13,7 @@ use App\Models\Patient;
 use App\Models\Invoice;
 use App\Models\Stock;
 use App\Models\StockMovement;
+use App\Support\StockAlertService;
 use App\Support\ApiResponse;
 use App\Support\CodeGenerator;
 use Illuminate\Support\Facades\DB;
@@ -182,6 +183,9 @@ class ExamRequestController extends Controller
                                     'demande_id' => $examRequest->id,
                                     'motif' => 'Consommation pour demande '.$examRequest->code,
                                 ]);
+
+                                // Alerte si seuil atteint
+                                StockAlertService::evaluateAndCreate($stock);
                             }
                         }
                     }
@@ -242,8 +246,13 @@ class ExamRequestController extends Controller
     public function destroy(ExamRequest $examRequest)
     {
         $this->authorizeRequest($examRequest);
+        // Annulation autorisée si non Terminée
+        if ($examRequest->statut_demande === 'Terminée') {
+            return ApiResponse::error('exam_requests.cannot_cancel_finished', 422, 'CANNOT_CANCEL');
+        }
+        $examRequest->update(['statut_demande' => 'Annulée']);
         $examRequest->delete();
-        return ApiResponse::success(null, 'exam_requests.deleted');
+        return ApiResponse::success(null, 'exam_requests.cancelled');
     }
 
     private function authorizeRequest(ExamRequest $examRequest): void

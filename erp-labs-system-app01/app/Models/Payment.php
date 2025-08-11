@@ -5,10 +5,11 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use App\Models\Concerns\Searchable;
 
 class Payment extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory, SoftDeletes, Searchable;
 
     protected $table = 'paiements';
 
@@ -21,6 +22,16 @@ class Payment extends Model
         'methode_paiement',
         'reference_paiement',
     ];
+
+    /** @var list<string> */
+    protected array $searchable = [
+        'code', 'methode_paiement', 'reference_paiement'
+    ];
+
+    public function invoice()
+    {
+        return $this->belongsTo(Invoice::class, 'facture_id');
+    }
 }
 
 

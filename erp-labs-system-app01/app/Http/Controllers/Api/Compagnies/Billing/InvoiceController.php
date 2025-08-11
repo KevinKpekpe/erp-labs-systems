@@ -42,6 +42,18 @@ class InvoiceController extends Controller
         return ApiResponse::success($invoice, 'invoices.details');
     }
 
+    public function destroy(Invoice $invoice)
+    {
+        $this->authorizeInvoice($invoice);
+        // Autoriser l'annulation si non payée entièrement
+        if ($invoice->statut_facture === 'Payée') {
+            return ApiResponse::error('invoices.cannot_cancel_paid', 422, 'CANNOT_CANCEL');
+        }
+        $invoice->update(['statut_facture' => 'Annulée']);
+        $invoice->delete();
+        return ApiResponse::success(null, 'invoices.cancelled');
+    }
+
     private function authorizeInvoice(Invoice $invoice): void
     {
         if ($invoice->company_id !== request()->user()->company_id) {

@@ -15,8 +15,10 @@ class PaymentController extends Controller
     public function index()
     {
         $companyId = request()->user()->company_id;
+        $q = request('q') ?? request('search');
         $perPage = (int) (request('per_page') ?? 15);
         $payments = Payment::where('company_id', $companyId)
+            ->search($q)
             ->orderByDesc('date_paiement')
             ->paginate($perPage);
         return ApiResponse::success($payments, 'payments.list');
@@ -56,6 +58,40 @@ class PaymentController extends Controller
         });
 
         return ApiResponse::success($payment, 'payments.created', [], 201);
+    }
+
+    public function show(Payment $payment)
+    {
+        $this->authorizePayment($payment);
+        $payment->load(['invoice:id,code,statut_facture,montant_total']);
+        return ApiResponse::success($payment, 'payments.details');
+    }
+
+    public function destroy(Payment $payment)
+    {
+        $this->authorizePayment($payment);
+        $companyId = request()->user()->company_id;
+        $invoice = Invoice::where('company_id', $companyId)->findOrFail($payment->facture_id);
+        $payment->delete();
+        // Re-calc statut facture après annulation (soft delete)
+        $sum = Payment::where('company_id', $companyId)
+            ->where('facture_id', $invoice->id)
+            ->sum('montant_paye');
+        if ($sum <= 0) {
+            $invoice->update(['statut_facture' => 'En attente de paiement']);
+        } elseif ($sum + 0.00001 < (float) $invoice->montant_total) {
+            $invoice->update(['statut_facture' => 'Partiellement payée']);
+        } else {
+            $invoice->update(['statut_facture' => 'Payée']);
+        }
+        return ApiResponse::success(null, 'payments.cancelled');
+    }
+
+    private function authorizePayment(Payment $payment): void
+    {
+        if ($payment->company_id !== request()->user()->company_id) {
+            abort(403);
+        }
     }
 }
 

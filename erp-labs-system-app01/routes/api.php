@@ -20,6 +20,7 @@ use App\Http\Controllers\Api\Compagnies\Exams\ExamController;
 use App\Http\Controllers\Api\Compagnies\Exams\ExamRequestController;
 use App\Http\Controllers\Api\Compagnies\Billing\PaymentController;
 use App\Http\Controllers\Api\Compagnies\Billing\InvoiceController;
+use App\Http\Controllers\Api\Compagnies\Stock\AlertController as StockAlertController;
 
 // SuperAdmin Auth
 Route::prefix('v1/superadmin')->group(function () {
@@ -127,6 +128,9 @@ Route::prefix('v1')->group(function () {
         Route::get('/stock/movements', [StockMovementController::class, 'index'])->middleware('can.permission:LIST,STOCK');
         Route::post('/stock/movements', [StockMovementController::class, 'store'])->middleware('can.permission:CREATE,STOCK');
 
+        // Stock - Alerts
+        Route::get('/stock/alerts', [StockAlertController::class, 'index'])->middleware('can.permission:LIST,STOCK');
+
         // Patients - Types
         Route::get('/patients/types', [PatientTypeController::class, 'index'])->middleware('can.permission:LIST,PATIENT');
         Route::post('/patients/types', [PatientTypeController::class, 'store'])->middleware('can.permission:CREATE,PATIENT');
@@ -177,9 +181,12 @@ Route::prefix('v1')->group(function () {
         // Payments
         Route::get('/payments', [PaymentController::class, 'index'])->middleware('can.permission:LIST,PAYMENT');
         Route::post('/payments', [PaymentController::class, 'store'])->middleware('can.permission:CREATE,PAYMENT');
+        Route::get('/payments/{payment}', [PaymentController::class, 'show'])->middleware('can.permission:LIST,PAYMENT');
+        Route::delete('/payments/{payment}', [PaymentController::class, 'destroy'])->middleware('can.permission:DELETE,PAYMENT');
 
         // Invoices
         Route::get('/invoices', [InvoiceController::class, 'index'])->middleware('can.permission:LIST,INVOICE');
         Route::get('/invoices/{invoice}', [InvoiceController::class, 'show'])->middleware('can.permission:LIST,INVOICE');
+        Route::delete('/invoices/{invoice}', [InvoiceController::class, 'destroy'])->middleware('can.permission:DELETE,INVOICE');
     });
 });
