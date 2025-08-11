@@ -12,6 +12,10 @@ use App\Http\Controllers\Api\Compagnies\UserController as CompanyUserController;
 use App\Http\Controllers\Api\Compagnies\Stock\CategoryController as StockCategoryController;
 use App\Http\Controllers\Api\Compagnies\Stock\ArticleController as StockArticleController;
 use App\Http\Controllers\Api\Compagnies\Stock\StockController as StockStockController;
+use App\Http\Controllers\Api\Compagnies\Stock\MovementController as StockMovementController;
+use App\Http\Controllers\Api\Compagnies\Patients\PatientTypeController;
+use App\Http\Controllers\Api\Compagnies\Patients\DoctorController;
+use App\Http\Controllers\Api\Compagnies\Patients\PatientController;
 
 // SuperAdmin Auth
 Route::prefix('v1/superadmin')->group(function () {
@@ -114,5 +118,39 @@ Route::prefix('v1')->group(function () {
         Route::get('/stock/stocks-trashed', [StockStockController::class, 'trashed'])->middleware('can.permission:LIST,STOCK');
         Route::post('/stock/stocks/{id}/restore', [StockStockController::class, 'restore'])->middleware('can.permission:UPDATE,STOCK');
         Route::delete('/stock/stocks/{id}/force', [StockStockController::class, 'forceDelete'])->middleware('can.permission:DELETE,STOCK');
+
+        // Stock - Movements
+        Route::get('/stock/movements', [StockMovementController::class, 'index'])->middleware('can.permission:LIST,STOCK');
+        Route::post('/stock/movements', [StockMovementController::class, 'store'])->middleware('can.permission:CREATE,STOCK');
+
+        // Patients - Types
+        Route::get('/patients/types', [PatientTypeController::class, 'index'])->middleware('can.permission:LIST,PATIENT');
+        Route::post('/patients/types', [PatientTypeController::class, 'store'])->middleware('can.permission:CREATE,PATIENT');
+        Route::get('/patients/types/{type}', [PatientTypeController::class, 'show'])->middleware('can.permission:LIST,PATIENT');
+        Route::put('/patients/types/{type}', [PatientTypeController::class, 'update'])->middleware('can.permission:UPDATE,PATIENT');
+        Route::delete('/patients/types/{type}', [PatientTypeController::class, 'destroy'])->middleware('can.permission:DELETE,PATIENT');
+        Route::get('/patients/types-trashed', [PatientTypeController::class, 'trashed'])->middleware('can.permission:LIST,PATIENT');
+        Route::post('/patients/types/{id}/restore', [PatientTypeController::class, 'restore'])->middleware('can.permission:UPDATE,PATIENT');
+        Route::delete('/patients/types/{id}/force', [PatientTypeController::class, 'forceDelete'])->middleware('can.permission:DELETE,PATIENT');
+
+        // Doctors
+        Route::get('/doctors', [DoctorController::class, 'index'])->middleware('can.permission:LIST,DOCTOR');
+        Route::post('/doctors', [DoctorController::class, 'store'])->middleware('can.permission:CREATE,DOCTOR');
+        Route::get('/doctors/{doctor}', [DoctorController::class, 'show'])->middleware('can.permission:LIST,DOCTOR');
+        Route::put('/doctors/{doctor}', [DoctorController::class, 'update'])->middleware('can.permission:UPDATE,DOCTOR');
+        Route::delete('/doctors/{doctor}', [DoctorController::class, 'destroy'])->middleware('can.permission:DELETE,DOCTOR');
+        Route::get('/doctors-trashed', [DoctorController::class, 'trashed'])->middleware('can.permission:LIST,DOCTOR');
+        Route::post('/doctors/{id}/restore', [DoctorController::class, 'restore'])->middleware('can.permission:UPDATE,DOCTOR');
+        Route::delete('/doctors/{id}/force', [DoctorController::class, 'forceDelete'])->middleware('can.permission:DELETE,DOCTOR');
+
+        // Patients
+        Route::get('/patients', [PatientController::class, 'index'])->middleware('can.permission:LIST,PATIENT');
+        Route::post('/patients', [PatientController::class, 'store'])->middleware('can.permission:CREATE,PATIENT');
+        Route::get('/patients/{patient}', [PatientController::class, 'show'])->middleware('can.permission:LIST,PATIENT');
+        Route::put('/patients/{patient}', [PatientController::class, 'update'])->middleware('can.permission:UPDATE,PATIENT');
+        Route::delete('/patients/{patient}', [PatientController::class, 'destroy'])->middleware('can.permission:DELETE,PATIENT');
+        Route::get('/patients-trashed', [PatientController::class, 'trashed'])->middleware('can.permission:LIST,PATIENT');
+        Route::post('/patients/{id}/restore', [PatientController::class, 'restore'])->middleware('can.permission:UPDATE,PATIENT');
+        Route::delete('/patients/{id}/force', [PatientController::class, 'forceDelete'])->middleware('can.permission:DELETE,PATIENT');
     });
 });

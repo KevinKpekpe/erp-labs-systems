@@ -5,10 +5,11 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use App\Models\Concerns\Searchable;
 
 class Patient extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory, SoftDeletes, Searchable;
 
     protected $table = 'patients';
 
@@ -25,6 +26,11 @@ class Patient extends Model
         'contact',
         'type_patient_id',
         'medecin_resident_id',
+    ];
+
+    /** @var list<string> */
+    protected array $searchable = [
+        'code', 'nom', 'postnom', 'prenom', 'email', 'adresse', 'contact'
     ];
 
     public function company()
