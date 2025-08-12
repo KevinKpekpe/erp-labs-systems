@@ -8,6 +8,7 @@ use App\Http\Requests\Compagnies\Patients\PatientUpdateRequest;
 use App\Models\Doctor;
 use App\Models\Patient;
 use App\Models\PatientType;
+use App\Models\ExamRequest;
 use App\Support\ApiResponse;
 use App\Support\CodeGenerator;
 
@@ -59,6 +60,17 @@ class PatientController extends Controller
     {
         $this->authorizePatient($patient);
         $patient->load(['type:id,nom_type','medecinResident:id,nom,prenom']);
+        // Récupérer les demandes du patient avec leurs détails et examens
+        $requests = ExamRequest::where('company_id', $patient->company_id)
+            ->where('patient_id', $patient->id)
+            ->with([
+                'medecin:id,nom,prenom',
+                'details:id,demande_id,examen_id,resultat,date_resultat',
+                'details.examen:id,nom_examen'
+            ])
+            ->orderByDesc('date_demande')
+            ->get();
+        $patient->setRelation('exam_requests', $requests);
         return ApiResponse::success($patient, 'patients.details');
     }
 

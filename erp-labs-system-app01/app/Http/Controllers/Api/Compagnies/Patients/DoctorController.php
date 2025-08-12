@@ -8,6 +8,7 @@ use App\Http\Requests\Compagnies\Patients\DoctorUpdateRequest;
 use App\Models\Doctor;
 use App\Support\ApiResponse;
 use App\Support\CodeGenerator;
+use App\Models\ExamRequest;
 
 class DoctorController extends Controller
 {
@@ -43,6 +44,13 @@ class DoctorController extends Controller
     public function show(Doctor $doctor)
     {
         $this->authorizeDoctor($doctor);
+        // Récupérer les demandes de ce docteur
+        $requests = ExamRequest::where('company_id', $doctor->company_id)
+            ->where('medecin_prescripteur_id', $doctor->id)
+            ->with(['patient:id,nom,postnom,prenom','details:id,demande_id,examen_id','details.examen:id,nom_examen'])
+            ->orderByDesc('date_demande')
+            ->get();
+        $doctor->setRelation('exam_requests', $requests);
         return ApiResponse::success($doctor, 'patients.doctors.details');
     }
 
