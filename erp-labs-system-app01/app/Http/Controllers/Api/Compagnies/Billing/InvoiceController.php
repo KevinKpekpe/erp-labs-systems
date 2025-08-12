@@ -30,6 +30,22 @@ class InvoiceController extends Controller
         return ApiResponse::success($query->paginate($perPage), 'invoices.list');
     }
 
+    public function byPatient(int $patientId)
+    {
+        $companyId = request()->user()->company_id;
+        $perPage = (int) (request('per_page') ?? 15);
+        $q = request('q') ?? request('search');
+        $status = request('status');
+        $invoices = Invoice::where('company_id', $companyId)
+            ->where('patient_id', $patientId)
+            ->with(['patient:id,nom,postnom,prenom'])
+            ->search($q)
+            ->when($status, fn($q2) => $q2->where('statut_facture', $status))
+            ->orderByDesc('date_facture')
+            ->paginate($perPage);
+        return ApiResponse::success($invoices, 'invoices.list');
+    }
+
     public function show(Invoice $invoice)
     {
         $this->authorizeInvoice($invoice);

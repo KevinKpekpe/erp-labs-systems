@@ -177,16 +177,20 @@ Route::prefix('v1')->group(function () {
         Route::get('/exam-requests/{examRequest}', [ExamRequestController::class, 'show'])->middleware('can.permission:LIST,DEMANDE');
         Route::put('/exam-requests/{examRequest}', [ExamRequestController::class, 'update'])->middleware('can.permission:UPDATE,DEMANDE');
         Route::delete('/exam-requests/{examRequest}', [ExamRequestController::class, 'destroy'])->middleware('can.permission:DELETE,DEMANDE');
+        Route::get('/patients/{patient}/exam-requests', [ExamRequestController::class, 'byPatient'])->middleware('can.permission:LIST,DEMANDE');
+        Route::get('/doctors/{doctor}/exam-requests', [ExamRequestController::class, 'byDoctor'])->middleware('can.permission:LIST,DEMANDE');
 
         // Payments
         Route::get('/payments', [PaymentController::class, 'index'])->middleware('can.permission:LIST,PAYMENT');
         Route::post('/payments', [PaymentController::class, 'store'])->middleware('can.permission:CREATE,PAYMENT');
         Route::get('/payments/{payment}', [PaymentController::class, 'show'])->middleware('can.permission:LIST,PAYMENT');
         Route::delete('/payments/{payment}', [PaymentController::class, 'destroy'])->middleware('can.permission:DELETE,PAYMENT');
+        Route::get('/patients/{patient}/payments', [PaymentController::class, 'byPatient'])->middleware('can.permission:LIST,PAYMENT');
 
         // Invoices
         Route::get('/invoices', [InvoiceController::class, 'index'])->middleware('can.permission:LIST,INVOICE');
         Route::get('/invoices/{invoice}', [InvoiceController::class, 'show'])->middleware('can.permission:LIST,INVOICE');
         Route::delete('/invoices/{invoice}', [InvoiceController::class, 'destroy'])->middleware('can.permission:DELETE,INVOICE');
+        Route::get('/patients/{patient}/invoices', [InvoiceController::class, 'byPatient'])->middleware('can.permission:LIST,INVOICE');
     });
 });

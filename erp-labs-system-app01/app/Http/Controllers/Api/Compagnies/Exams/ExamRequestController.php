@@ -46,6 +46,36 @@ class ExamRequestController extends Controller
         return ApiResponse::success($requests, 'exam_requests.list');
     }
 
+    public function byPatient(Patient $patient)
+    {
+        if ($patient->company_id !== request()->user()->company_id) { abort(403); }
+        $companyId = $patient->company_id;
+        $q = request('q') ?? request('search');
+        $perPage = (int) (request('per_page') ?? 15);
+        $requests = ExamRequest::where('company_id', $companyId)
+            ->where('patient_id', $patient->id)
+            ->with(['patient:id,nom,postnom,prenom','medecin:id,nom,prenom'])
+            ->search($q)
+            ->orderByDesc('date_demande')
+            ->paginate($perPage);
+        return ApiResponse::success($requests, 'exam_requests.list');
+    }
+
+    public function byDoctor(Doctor $doctor)
+    {
+        if ($doctor->company_id !== request()->user()->company_id) { abort(403); }
+        $companyId = $doctor->company_id;
+        $q = request('q') ?? request('search');
+        $perPage = (int) (request('per_page') ?? 15);
+        $requests = ExamRequest::where('company_id', $companyId)
+            ->where('medecin_prescripteur_id', $doctor->id)
+            ->with(['patient:id,nom,postnom,prenom','medecin:id,nom,prenom'])
+            ->search($q)
+            ->orderByDesc('date_demande')
+            ->paginate($perPage);
+        return ApiResponse::success($requests, 'exam_requests.list');
+    }
+
     public function store(ExamRequestStoreRequest $request)
     {
         $companyId = $request->user()->company_id;

@@ -24,6 +24,19 @@ class PaymentController extends Controller
         return ApiResponse::success($payments, 'payments.list');
     }
 
+    public function byPatient(int $patientId)
+    {
+        $companyId = request()->user()->company_id;
+        $q = request('q') ?? request('search');
+        $perPage = (int) (request('per_page') ?? 15);
+        $payments = Payment::where('company_id', $companyId)
+            ->whereHas('invoice', fn($q2) => $q2->where('patient_id', $patientId))
+            ->search($q)
+            ->orderByDesc('date_paiement')
+            ->paginate($perPage);
+        return ApiResponse::success($payments, 'payments.list');
+    }
+
     public function store(PaymentStoreRequest $request)
     {
         $companyId = $request->user()->company_id;
