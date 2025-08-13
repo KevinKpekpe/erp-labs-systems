@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { Helmet } from "react-helmet-async";
-import { UserIcon, PlusIcon, UserCircleIcon, PencilIcon, TrashBinIcon } from "../../icons";
+import { UserIcon, PlusIcon, UserCircleIcon, PencilIcon, TrashBinIcon, CheckLineIcon } from "../../icons";
 import Input from "../../components/form/input/InputField";
 import Modal from "../../components/ui/Modal";
 import { Link } from "react-router";
@@ -17,39 +17,58 @@ export default function TypePatientList() {
   const [items, setItems] = useState<TypePatient[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [searchTerm, setSearchTerm] = useState("");
-  const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean; typePatient: TypePatient | null; }>({ isOpen: false, typePatient: null });
+  const [showTrashed, setShowTrashed] = useState<boolean>(false);
+  const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean; typePatient: TypePatient | null; hard?: boolean }>({ isOpen: false, typePatient: null, hard: false });
 
   useEffect(() => {
     let mounted = true;
     setLoading(true);
     (async () => {
       try {
-        const res = await apiFetch<{ data: { data: TypePatient[] } }>("/v1/patients/types?per_page=100", { method: "GET" }, "company");
-        const list = (res.data as any)?.data ?? [];
-        if (mounted) setItems(list);
+        if (showTrashed) {
+          const res = await apiFetch<unknown>("/v1/patients/types-trashed", { method: "GET" }, "company");
+          const root = (res as { data?: unknown })?.data ?? res;
+          const list = Array.isArray(root) ? (root as TypePatient[]) : (Array.isArray((root as any)?.data) ? (root as any).data as TypePatient[] : []);
+          if (mounted) setItems(list);
+        } else {
+          const res = await apiFetch<{ data: { data: TypePatient[] } }>("/v1/patients/types?per_page=100", { method: "GET" }, "company");
+          const list = (res.data as any)?.data ?? [];
+          if (mounted) setItems(list);
+        }
       } catch {
       } finally {
         if (mounted) setLoading(false);
       }
     })();
     return () => { mounted = false; };
-  }, []);
+  }, [showTrashed]);
 
   const filteredTypePatients = useMemo(() => {
     const q = searchTerm.toLowerCase();
     return items.filter(tp => `${tp.nom_type}`.toLowerCase().includes(q) || `${tp.code}`.toLowerCase().includes(q) || `${tp.description ?? ""}`.toLowerCase().includes(q));
   }, [items, searchTerm]);
 
-  const handleDeleteClick = (typePatient: TypePatient) => setDeleteModal({ isOpen: true, typePatient });
-  const handleCloseDeleteModal = () => setDeleteModal({ isOpen: false, typePatient: null });
+  const handleDeleteClick = (typePatient: TypePatient, hard = false) => setDeleteModal({ isOpen: true, typePatient, hard });
+  const handleCloseDeleteModal = () => setDeleteModal({ isOpen: false, typePatient: null, hard: false });
 
   const handleConfirmDelete = async () => {
     if (!deleteModal.typePatient) return;
     try {
-      await apiFetch(`/v1/patients/types/${deleteModal.typePatient.id}`, { method: "DELETE" }, "company");
+      if (showTrashed && deleteModal.hard) {
+        await apiFetch(`/v1/patients/types/${deleteModal.typePatient.id}/force`, { method: "DELETE" }, "company");
+      } else {
+        await apiFetch(`/v1/patients/types/${deleteModal.typePatient.id}`, { method: "DELETE" }, "company");
+      }
       setItems(prev => prev.filter(i => i.id !== deleteModal.typePatient!.id));
     } catch {}
     handleCloseDeleteModal();
+  };
+
+  const handleRestore = async (typePatient: TypePatient) => {
+    try {
+      await apiFetch(`/v1/patients/types/${typePatient.id}/restore`, { method: "POST" }, "company");
+      setItems(prev => prev.filter(i => i.id !== typePatient.id));
+    } catch {}
   };
 
   return (
@@ -62,10 +81,17 @@ export default function TypePatientList() {
       <div className="mx-auto max-w-screen-2xl p-4 md:p-6 2xl:p-10">
         <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <h2 className="text-title-md2 font-semibold text-black dark:text-white">Types de Patients</h2>
-          <Link to="/types-patients/nouveau" className="inline-flex items-center justify-center rounded-md bg-brand-500 px-6 py-2.5 text-center font-medium text-white hover:bg-opacity-90 lg:px-8 xl:px-10">
-            <PlusIcon className="mr-2 h-4 w-4" />
-            Nouveau Type
-          </Link>
+          <div className="flex items-center gap-3">
+            <button onClick={() => setShowTrashed(v => !v)} className="inline-flex items-center justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700">
+              {showTrashed ? 'Voir actifs' : 'Corbeille'}
+            </button>
+            {!showTrashed && (
+              <Link to="/types-patients/nouveau" className="inline-flex items-center justify-center rounded-md bg-brand-500 px-6 py-2.5 text-center font-medium text-white hover:bg-opacity-90 lg:px-8 xl:px-10">
+                <PlusIcon className="mr-2 h-4 w-4" />
+                Nouveau Type
+              </Link>
+            )}
+          </div>
         </div>
 
         <div className="mb-6">
@@ -78,11 +104,11 @@ export default function TypePatientList() {
         <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] md:p-6">
             <div className="flex h-11.5 w-11.5 items-center justify-center rounded-full bg-meta-2 dark:bg-meta-4"><UserIcon className="h-6 w-6 text-brand-500" /></div>
-            <div className="mt-4.5"><h4 className="text-title-md font-bold text-gray-800 dark:text-white/90">{filteredTypePatients.length}</h4><p className="text-sm font-medium text-gray-500 dark:text-gray-400">Types trouvés</p></div>
+            <div className="mt-4.5"><h4 className="text-title-md font-bold text-gray-800 dark:text-white/90">{filteredTypePatients.length}</h4><p className="text-sm font-medium text-gray-500 dark:text-gray-400">{showTrashed ? 'Supprimés trouvés' : 'Types trouvés'}</p></div>
           </div>
           <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] md:p-6">
             <div className="flex h-11.5 w-11.5 items-center justify-center rounded-full bg-meta-2 dark:bg-meta-4"><UserIcon className="h-6 w-6 text-brand-500" /></div>
-            <div className="mt-4.5"><h4 className="text-title-md font-bold text-gray-800 dark:text-white/90">{items.length}</h4><p className="text-sm font-medium text-gray-500 dark:text-gray-400">Total des types</p></div>
+            <div className="mt-4.5"><h4 className="text-title-md font-bold text-gray-800 dark:text-white/90">{items.length}</h4><p className="text-sm font-medium text-gray-500 dark:text-gray-400">Total {showTrashed ? 'corbeille' : 'actifs'}</p></div>
           </div>
         </div>
 
@@ -107,9 +133,18 @@ export default function TypePatientList() {
                     <td className="py-5 px-4"><p className="text-gray-600 dark:text-gray-400">{typePatient.description || "Aucune description"}</p></td>
                     <td className="py-5 px-4">
                       <div className="flex items-center space-x-3.5">
-                        <Link to={`/types-patients/${typePatient.id}`} className="inline-flex items-center justify-center rounded-md p-2 text-gray-500 hover:bg-gray-100 hover:text-primary dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-primary transition-colors" title="Voir les détails"><UserCircleIcon className="h-5 w-5" /></Link>
-                        <Link to={`/types-patients/${typePatient.id}/modifier`} className="inline-flex items-center justify-center rounded-md p-2 text-gray-500 hover:bg-gray-100 hover:text-primary dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-primary transition-colors" title="Modifier"><PencilIcon className="h-5 w-5" /></Link>
-                        <button onClick={() => handleDeleteClick(typePatient)} className="inline-flex items-center justify-center rounded-md p-2 text-gray-500 hover:bg-gray-100 hover:text-danger dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-danger transition-colors" title="Supprimer"><TrashBinIcon className="h-5 w-5" /></button>
+                        {!showTrashed ? (
+                          <>
+                            <Link to={`/types-patients/${typePatient.id}`} className="inline-flex items-center justify-center rounded-md p-2 text-gray-500 hover:bg-gray-100 hover:text-primary dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-primary transition-colors" title="Voir les détails"><UserCircleIcon className="h-5 w-5" /></Link>
+                            <Link to={`/types-patients/${typePatient.id}/modifier`} className="inline-flex items-center justify-center rounded-md p-2 text-gray-500 hover:bg-gray-100 hover:text-primary dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-primary transition-colors" title="Modifier"><PencilIcon className="h-5 w-5" /></Link>
+                            <button onClick={() => handleDeleteClick(typePatient)} className="inline-flex items-center justify-center rounded-md p-2 text-gray-500 hover:bg-gray-100 hover:text-danger dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-danger transition-colors" title="Supprimer"><TrashBinIcon className="h-5 w-5" /></button>
+                          </>
+                        ) : (
+                          <>
+                            <button onClick={() => handleRestore(typePatient)} className="inline-flex items-center justify-center rounded-md p-2 text-gray-500 hover:bg-gray-100 hover:text-success dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-success transition-colors" title="Restaurer"><CheckLineIcon className="h-5 w-5" /></button>
+                            <button onClick={() => handleDeleteClick(typePatient, true)} className="inline-flex items-center justify-center rounded-md p-2 text-gray-500 hover:bg-gray-100 hover:text-danger dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-danger transition-colors" title="Supprimer définitivement"><TrashBinIcon className="h-5 w-5" /></button>
+                          </>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -120,14 +155,14 @@ export default function TypePatientList() {
         </div>
       </div>
 
-      <Modal isOpen={deleteModal.isOpen} onClose={handleCloseDeleteModal} title="Confirmer la suppression" size="sm">
+      <Modal isOpen={deleteModal.isOpen} onClose={handleCloseDeleteModal} title={showTrashed && deleteModal.hard ? "Confirmer la suppression définitive" : "Confirmer la suppression"} size="sm">
         <div className="text-center">
           <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/20"><TrashBinIcon className="h-6 w-6 text-red-600 dark:text-red-400" /></div>
-          <h3 className="mt-4 text-lg font-semibold text-gray-900 dark:text-white">Supprimer le type de patient</h3>
-          <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">Êtes-vous sûr de vouloir supprimer le type de patient <span className="font-semibold text-gray-900 dark:text-white">{deleteModal.typePatient?.nom_type}</span> ?</p>
+          <h3 className="mt-4 text-lg font-semibold text-gray-900 dark:text-white">{showTrashed && deleteModal.hard ? 'Supprimer définitivement' : 'Supprimer le type de patient'}</h3>
+          <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">Êtes-vous sûr de vouloir {showTrashed && deleteModal.hard ? 'supprimer définitivement' : 'supprimer'} le type de patient <span className="font-semibold text-gray-900 dark:text-white">{deleteModal.typePatient?.nom_type}</span> ?</p>
           <div className="mt-6 flex justify-center space-x-3">
             <button onClick={handleCloseDeleteModal} className="inline-flex items-center justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700">Annuler</button>
-            <button onClick={handleConfirmDelete} className="inline-flex items-center justify-center rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700">Supprimer</button>
+            <button onClick={handleConfirmDelete} className="inline-flex items-center justify-center rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700">Confirmer</button>
           </div>
         </div>
       </Modal>
