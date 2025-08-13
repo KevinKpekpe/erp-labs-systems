@@ -2,29 +2,29 @@ import GridShape from "../../components/common/GridShape";
 import { Link } from "react-router";
 import PageMeta from "../../components/common/PageMeta";
 
-export default function NotFound() {
+export default function ServerError() {
   return (
     <>
       <PageMeta
-        title="404 | ClinLab ERP"
-        description="La page demandée est introuvable."
+        title="500 | ClinLab ERP"
+        description="Une erreur interne du serveur s'est produite."
       />
       <div className="relative flex flex-col items-center justify-center min-h-screen p-6 overflow-hidden z-1 bg-white dark:bg-gray-900">
         <GridShape />
         <div className="mx-auto w-full max-w-[242px] text-center sm:max-w-[472px]">
           <h1 className="mb-8 font-bold text-gray-800 text-title-md dark:text-white/90 xl:text-title-2xl">
-            ERREUR
+            ERREUR SERVEUR
           </h1>
 
-          <img src="/images/error/404.svg" alt="404" className="dark:hidden" />
+          <img src="/images/error/500.svg" alt="500" className="dark:hidden" />
           <img
-            src="/images/error/404-dark.svg"
-            alt="404"
+            src="/images/error/500-dark.svg"
+            alt="500"
             className="hidden dark:block"
           />
 
           <p className="mt-10 mb-6 text-base text-gray-700 dark:text-gray-400 sm:text-lg">
-            Nous ne trouvons pas la page que vous recherchez.
+            Une erreur imprévue s'est produite. Veuillez réessayer plus tard.
           </p>
 
           <Link

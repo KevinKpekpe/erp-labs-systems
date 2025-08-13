@@ -37,6 +37,8 @@ import ProtectedRoute from "./components/auth/ProtectedRoute";
 import SuperAdminHome from "./pages/SuperAdmin/Home";
 import MustChangePassword from "./pages/AuthPages/MustChangePassword";
 import UserProfiles from "./pages/UserProfiles";
+import Forbidden from "./pages/OtherPage/Forbidden";
+import ServerError from "./pages/OtherPage/ServerError";
 
 function CompanyGuard({ children }: { children: React.ReactElement }) {
   const { state } = useAuth();
@@ -73,30 +75,30 @@ export default function App() {
               <Route index path="/" element={<Home />} />
 
               {/* Gestion des Types de Patients */}
-              <Route path="/types-patients" element={<TypePatientList />} />
-              <Route path="/types-patients/nouveau" element={<AddTypePatient />} />
-              <Route path="/types-patients/:id" element={<TypePatientDetails />} />
-              <Route path="/types-patients/:id/modifier" element={<EditTypePatient />} />
+              <Route path="/types-patients" element={<ProtectedRoute kind="company" requiredPermission={{ action: "LIST", module: "PATIENT" }}><TypePatientList /></ProtectedRoute>} />
+              <Route path="/types-patients/nouveau" element={<ProtectedRoute kind="company" requiredPermission={{ action: "CREATE", module: "PATIENT" }}><AddTypePatient /></ProtectedRoute>} />
+              <Route path="/types-patients/:id" element={<ProtectedRoute kind="company" requiredPermission={{ action: "LIST", module: "PATIENT" }}><TypePatientDetails /></ProtectedRoute>} />
+              <Route path="/types-patients/:id/modifier" element={<ProtectedRoute kind="company" requiredPermission={{ action: "UPDATE", module: "PATIENT" }}><EditTypePatient /></ProtectedRoute>} />
 
               {/* Gestion des Patients */}
-              <Route path="/patients" element={<PatientList />} />
-              <Route path="/patients/nouveau" element={<AddPatient />} />
-              <Route path="/patients/:id" element={<PatientDetails />} />
-              <Route path="/patients/:id/modifier" element={<EditPatient />} />
+              <Route path="/patients" element={<ProtectedRoute kind="company" requiredPermission={{ action: "LIST", module: "PATIENT" }}><PatientList /></ProtectedRoute>} />
+              <Route path="/patients/nouveau" element={<ProtectedRoute kind="company" requiredPermission={{ action: "CREATE", module: "PATIENT" }}><AddPatient /></ProtectedRoute>} />
+              <Route path="/patients/:id" element={<ProtectedRoute kind="company" requiredPermission={{ action: "LIST", module: "PATIENT" }}><PatientDetails /></ProtectedRoute>} />
+              <Route path="/patients/:id/modifier" element={<ProtectedRoute kind="company" requiredPermission={{ action: "UPDATE", module: "PATIENT" }}><EditPatient /></ProtectedRoute>} />
 
               {/* Gestion des Médecins */}
-              <Route path="/medecins" element={<MedecinList />} />
-              <Route path="/medecins/nouveau" element={<AddMedecin />} />
-              <Route path="/medecins/:id" element={<MedecinDetails />} />
-              <Route path="/medecins/:id/modifier" element={<EditMedecin />} />
+              <Route path="/medecins" element={<ProtectedRoute kind="company" requiredPermission={{ action: "LIST", module: "MEDECIN" }}><MedecinList /></ProtectedRoute>} />
+              <Route path="/medecins/nouveau" element={<ProtectedRoute kind="company" requiredPermission={{ action: "CREATE", module: "MEDECIN" }}><AddMedecin /></ProtectedRoute>} />
+              <Route path="/medecins/:id" element={<ProtectedRoute kind="company" requiredPermission={{ action: "LIST", module: "MEDECIN" }}><MedecinDetails /></ProtectedRoute>} />
+              <Route path="/medecins/:id/modifier" element={<ProtectedRoute kind="company" requiredPermission={{ action: "UPDATE", module: "MEDECIN" }}><EditMedecin /></ProtectedRoute>} />
 
               {/* Gestion des Stocks */}
-              <Route path="/stocks" element={<StocksDashboard />} />
+              <Route path="/stocks" element={<ProtectedRoute kind="company" requiredPermission={{ action: "LIST", module: "STOCK" }}><StocksDashboard /></ProtectedRoute>} />
 
               {/* Profile & Administration */}
               <Route path="/profile" element={<UserProfiles />} />
-              <Route path="/permissions" element={<Permissions />} />
-              <Route path="/company-info" element={<CompanyInfo />} />
+              <Route path="/permissions" element={<ProtectedRoute kind="company" requiredPermission={{ action: "LIST", module: "ROLE" }}><Permissions /></ProtectedRoute>} />
+              <Route path="/company-info" element={<ProtectedRoute kind="company" requiredPermission={{ action: "UPDATE", module: "COMPANY" }}><CompanyInfo /></ProtectedRoute>} />
 
               {/* Others Page */}
               <Route path="/calendar" element={<Calendar />} />
@@ -134,6 +136,8 @@ export default function App() {
             <Route path="/signin" element={<AuthOnlyWhenLoggedOut><SignIn /></AuthOnlyWhenLoggedOut>} />
             <Route path="/superadmin" element={<AuthOnlyWhenLoggedOut><SignInSuperAdmin /></AuthOnlyWhenLoggedOut>} />
             <Route path="/must-change-password" element={<MustChangePassword />} />
+            <Route path="/403" element={<Forbidden />} />
+            <Route path="/500" element={<ServerError />} />
 
             {/* Fallback Route */}
             <Route path="*" element={<NotFound />} />

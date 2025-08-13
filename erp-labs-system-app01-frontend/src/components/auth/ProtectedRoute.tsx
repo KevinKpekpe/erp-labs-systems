@@ -16,8 +16,13 @@ export default function ProtectedRoute({ children, kind, requiredPermission }: P
     return <Navigate to={kind === "superadmin" ? "/superadmin" : "/signin"} replace />;
   }
 
-  if (requiredPermission && !hasPermission(requiredPermission.action, requiredPermission.module)) {
-    return <Navigate to={"/"} replace />;
+  if (requiredPermission) {
+    if (state.kind !== "superadmin") {
+      if ((state.permissions?.length ?? 0) === 0) return <Navigate to={"/403"} replace />;
+      if (!hasPermission(requiredPermission.action, requiredPermission.module)) {
+        return <Navigate to={"/403"} replace />;
+      }
+    }
   }
 
   return children;

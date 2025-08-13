@@ -2,29 +2,29 @@ import GridShape from "../../components/common/GridShape";
 import { Link } from "react-router";
 import PageMeta from "../../components/common/PageMeta";
 
-export default function NotFound() {
+export default function Forbidden() {
   return (
     <>
       <PageMeta
-        title="404 | ClinLab ERP"
-        description="La page demandée est introuvable."
+        title="403 | ClinLab ERP"
+        description="Vous n'avez pas l'autorisation d'accéder à cette ressource."
       />
       <div className="relative flex flex-col items-center justify-center min-h-screen p-6 overflow-hidden z-1 bg-white dark:bg-gray-900">
         <GridShape />
         <div className="mx-auto w-full max-w-[242px] text-center sm:max-w-[472px]">
           <h1 className="mb-8 font-bold text-gray-800 text-title-md dark:text-white/90 xl:text-title-2xl">
-            ERREUR
+            ACCÈS REFUSÉ
           </h1>
 
-          <img src="/images/error/404.svg" alt="404" className="dark:hidden" />
+          <img src="/images/error/403.svg" alt="403" className="dark:hidden" />
           <img
-            src="/images/error/404-dark.svg"
-            alt="404"
+            src="/images/error/403-dark.svg"
+            alt="403"
             className="hidden dark:block"
           />
 
           <p className="mt-10 mb-6 text-base text-gray-700 dark:text-gray-400 sm:text-lg">
-            Nous ne trouvons pas la page que vous recherchez.
+            Vous n'avez pas l'autorisation d'accéder à cette page.
           </p>
 
           <Link

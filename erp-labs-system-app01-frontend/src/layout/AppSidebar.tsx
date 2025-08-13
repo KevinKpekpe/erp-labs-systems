@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation } from "react-router";
 
 // Import des icônes
@@ -23,119 +23,137 @@ import {
 } from "../icons";
 import { useSidebar } from "../context/SidebarContext";
 import SidebarWidget from "./SidebarWidget";
+import { useAuth } from "../context/AuthContext";
+
+const debug = (...args: unknown[]) => {
+  if (import.meta.env.DEV) console.log("[Sidebar]", ...args);
+};
+
+type PermissionReq = { action: string; module: string };
+
+type SubNavItem = { name: string; path: string; pro?: boolean; new?: boolean; requiredPermission?: PermissionReq; requiredKind?: "company" | "superadmin" };
 
 type NavItem = {
   name: string;
   icon: React.ReactNode;
   path?: string;
-  subItems?: { name: string; path: string; pro?: boolean; new?: boolean }[];
+  requiredPermission?: PermissionReq;
+  requiredKind?: "company" | "superadmin";
+  subItems?: SubNavItem[];
 };
 
 // Navigation principale - Modules de gestion
-const navItems: NavItem[] = [
+const baseNavItems: NavItem[] = [
   {
     icon: <GridIcon />,
     name: "Tableau de bord",
     path: "/",
+    requiredPermission: { action: "READ", module: "COMPANY" },
   },
   {
     icon: <PatientIcon />,
     name: "Gestion des Patients",
+    requiredPermission: { action: "LIST", module: "PATIENT" },
     subItems: [
-      { name: "Liste des patients", path: "/patients", pro: false },
-      { name: "Nouveau patient", path: "/patients/nouveau", pro: false },
-      { name: "Types de patients", path: "/types-patients", pro: false },
+      { name: "Liste des patients", path: "/patients", requiredPermission: { action: "LIST", module: "PATIENT" } },
+      { name: "Nouveau patient", path: "/patients/nouveau", requiredPermission: { action: "CREATE", module: "PATIENT" } },
+      { name: "Types de patients", path: "/types-patients", requiredPermission: { action: "LIST", module: "PATIENT" } },
     ],
   },
   {
     icon: <DoctorIcon />,
     name: "Gestion des Médecins",
+    requiredPermission: { action: "LIST", module: "MEDECIN" },
     subItems: [
-      { name: "Liste des médecins", path: "/medecins", pro: false },
-      { name: "Nouveau médecin", path: "/medecins/nouveau", pro: false },
+      { name: "Liste des médecins", path: "/medecins", requiredPermission: { action: "LIST", module: "MEDECIN" } },
+      { name: "Nouveau médecin", path: "/medecins/nouveau", requiredPermission: { action: "CREATE", module: "MEDECIN" } },
     ],
   },
   {
     icon: <ExamIcon />,
     name: "Gestion des Examens",
+    requiredPermission: { action: "LIST", module: "EXAMEN" },
     subItems: [
-      { name: "Types d'examens", path: "/examens", pro: false },
-      { name: "Nouvel examen", path: "/examens/nouveau", pro: false },
-      { name: "Réactifs nécessaires", path: "/examens/reactifs", pro: false },
+      { name: "Types d'examens", path: "/examens", requiredPermission: { action: "LIST", module: "EXAMEN" } },
+      { name: "Nouvel examen", path: "/examens/nouveau", requiredPermission: { action: "CREATE", module: "EXAMEN" } },
+      { name: "Réactifs nécessaires", path: "/examens/reactifs", requiredPermission: { action: "LIST", module: "EXAMEN" } },
     ],
   },
   {
     icon: <DemandeIcon />,
     name: "Demandes d'Examens",
+    requiredPermission: { action: "LIST", module: "DEMANDE_EXAMEN" },
     subItems: [
-      { name: "Demandes en cours", path: "/demandes", pro: false },
-      { name: "Nouvelle demande", path: "/demandes/nouvelle", pro: false },
-      { name: "Résultats", path: "/demandes/resultats", pro: false },
+      { name: "Demandes en cours", path: "/demandes", requiredPermission: { action: "LIST", module: "DEMANDE_EXAMEN" } },
+      { name: "Nouvelle demande", path: "/demandes/nouvelle", requiredPermission: { action: "CREATE", module: "DEMANDE_EXAMEN" } },
+      { name: "Résultats", path: "/demandes/resultats", requiredPermission: { action: "LIST", module: "DEMANDE_EXAMEN" } },
     ],
   },
   {
     icon: <StockIcon />,
     name: "Gestion des Stocks",
+    requiredPermission: { action: "LIST", module: "STOCK" },
     subItems: [
-      { name: "Tableau de bord", path: "/stocks", pro: false },
-      { name: "Articles en stock", path: "/stocks/articles", pro: false },
-      { name: "Mouvements", path: "/stocks/mouvements", pro: false },
-      { name: "Alertes", path: "/stocks/alertes", pro: false },
-      { name: "Catégories", path: "/stocks/categories", pro: false },
+      { name: "Tableau de bord", path: "/stocks", requiredPermission: { action: "LIST", module: "STOCK" } },
+      { name: "Articles en stock", path: "/stocks/articles", requiredPermission: { action: "LIST", module: "STOCK" } },
+      { name: "Mouvements", path: "/stocks/mouvements", requiredPermission: { action: "LIST", module: "STOCK" } },
+      { name: "Alertes", path: "/stocks/alertes", requiredPermission: { action: "LIST", module: "STOCK" } },
+      { name: "Catégories", path: "/stocks/categories", requiredPermission: { action: "LIST", module: "STOCK" } },
     ],
   },
   {
     icon: <BillingIcon />,
     name: "Facturation",
     subItems: [
-      { name: "Factures", path: "/factures", pro: false },
-      { name: "Paiements", path: "/factures/paiements", pro: false },
-      { name: "Rapports", path: "/factures/rapports", pro: false },
+      { name: "Factures", path: "/factures", requiredPermission: { action: "LIST", module: "FACTURE" } },
+      { name: "Paiements", path: "/factures/paiements", requiredPermission: { action: "LIST", module: "PAIEMENT" } },
+      { name: "Rapports", path: "/factures/rapports", requiredPermission: { action: "LIST", module: "FACTURE" } },
     ],
   },
   {
     icon: <EmployeeIcon />,
     name: "Gestion RH",
     subItems: [
-      { name: "Employés", path: "/employes", pro: false },
-      { name: "Horaires", path: "/employes/horaires", pro: false },
-      { name: "Présences", path: "/employes/presences", pro: false },
+      { name: "Employés", path: "/employes", requiredPermission: { action: "LIST", module: "EMPLOYE" } },
+      { name: "Horaires", path: "/employes/horaires", requiredPermission: { action: "LIST", module: "HORAIRE_EMPLOYE" } },
+      { name: "Présences", path: "/employes/presences", requiredPermission: { action: "LIST", module: "PRESENCE_EMPLOYE" } },
     ],
   },
 ];
 
 // Navigation secondaire - Administration et outils
-const othersItems: NavItem[] = [
+const baseOthersItems: NavItem[] = [
   {
     icon: <CompanyIcon />,
     name: "Multi-tenancy",
     subItems: [
-      { name: "Informations Compagnie", path: "/company-info", pro: false },
-      { name: "Compagnies", path: "/companies", pro: false },
-      { name: "Configuration", path: "/companies/config", pro: false },
+      { name: "Informations Compagnie", path: "/company-info", requiredPermission: { action: "UPDATE", module: "COMPANY" }, requiredKind: "company" },
+      { name: "Compagnies", path: "/companies", requiredKind: "superadmin" },
+      { name: "Configuration", path: "/companies/config", requiredKind: "superadmin" },
     ],
   },
   {
     icon: <UsersIcon />,
     name: "Utilisateurs & Rôles",
     subItems: [
-      { name: "Utilisateurs", path: "/users", pro: false },
-      { name: "Rôles", path: "/users/roles", pro: false },
-      { name: "Permissions", path: "/permissions", pro: false },
+      { name: "Utilisateurs", path: "/users", requiredPermission: { action: "LIST", module: "USER" } },
+      { name: "Rôles", path: "/users/roles", requiredPermission: { action: "LIST", module: "ROLE" } },
+      { name: "Permissions", path: "/permissions", requiredKind: "superadmin" },
     ],
   },
   {
     icon: <AuditIcon />,
     name: "Audit & Logs",
     subItems: [
-      { name: "Logs système", path: "/audit/logs", pro: false },
-      { name: "Traçabilité", path: "/audit/trace", pro: false },
+      { name: "Logs système", path: "/audit/logs", requiredKind: "superadmin" },
+      { name: "Traçabilité", path: "/audit/trace", requiredKind: "superadmin" },
     ],
   },
   {
     icon: <CalenderIcon />,
     name: "Calendrier",
     path: "/calendar",
+    requiredPermission: { action: "READ", module: "COMPANY" },
   },
   {
     icon: <UserCircleIcon />,
@@ -146,23 +164,24 @@ const othersItems: NavItem[] = [
     icon: <PieChartIcon />,
     name: "Rapports",
     subItems: [
-      { name: "Statistiques", path: "/rapports/stats", pro: false },
-      { name: "Analyses", path: "/rapports/analyses", pro: false },
-      { name: "Exports", path: "/rapports/exports", pro: false },
+      { name: "Statistiques", path: "/rapports/stats", requiredPermission: { action: "LIST", module: "EXAMEN" } },
+      { name: "Analyses", path: "/rapports/analyses", requiredPermission: { action: "LIST", module: "EXAMEN" } },
+      { name: "Exports", path: "/rapports/exports", requiredPermission: { action: "LIST", module: "EXAMEN" } },
     ],
   },
   {
     icon: <PlugInIcon />,
     name: "Authentification",
     subItems: [
-      { name: "Connexion", path: "/signin", pro: false },
-      { name: "Super Admin", path: "/superadmin", pro: false },
+      { name: "Connexion", path: "/signin" },
+      { name: "Super Admin", path: "/superadmin" },
     ],
   },
 ];
 
 const AppSidebar: React.FC = () => {
   const { isExpanded, isMobileOpen, isHovered, setIsHovered } = useSidebar();
+  const { state, hasPermission } = useAuth();
   const location = useLocation();
 
   const [openSubmenu, setOpenSubmenu] = useState<{
@@ -173,59 +192,117 @@ const AppSidebar: React.FC = () => {
     {}
   );
   const subMenuRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const [suppressAutoOpenPath, setSuppressAutoOpenPath] = useState<string | null>(null);
 
   const isActive = useCallback(
     (path: string) => location.pathname === path,
     [location.pathname]
   );
 
+  const canSee = useCallback(
+    (req?: PermissionReq, requiredKind?: "company" | "superadmin") => {
+      if (requiredKind && state.kind && state.kind !== requiredKind) return false;
+      if (state.kind === "superadmin") return true;
+      if (!req) return true; // pas de permission requise
+      if (state.loading) return false; // masquer tant que non chargé
+      if ((state.permissions?.length ?? 0) === 0) return false; // aucun droit => masquer
+      return hasPermission(req.action, req.module);
+    },
+    [state.kind, state.permissions, state.loading, hasPermission]
+  );
+
+  const navItems = useMemo(() => {
+    const result = baseNavItems
+      .map((item) => {
+        const subItems = item.subItems?.filter((si) => canSee(si.requiredPermission, si.requiredKind));
+        const parentNavigable = !!item.path && canSee(item.requiredPermission, item.requiredKind);
+        const hasVisibleChildren = !!(subItems && subItems.length > 0);
+        const parentExplicitAllowedWithoutPath = !item.path && !!item.requiredPermission && canSee(item.requiredPermission, item.requiredKind);
+        const shouldShow = parentNavigable || hasVisibleChildren || parentExplicitAllowedWithoutPath;
+        if (!shouldShow) return null;
+        return { ...item, subItems } as NavItem;
+      })
+      .filter(Boolean) as NavItem[];
+    debug("navItems", { count: result.length });
+    return result;
+  }, [canSee]);
+
+  const othersItems = useMemo(() => {
+    const filtered = baseOthersItems.filter((g) => (g.name === "Authentification" ? !state.token : true));
+    const result = filtered
+      .map((item) => {
+        const subItems = item.subItems?.filter((si) => canSee(si.requiredPermission, si.requiredKind));
+        const parentNavigable = !!item.path && canSee(item.requiredPermission, item.requiredKind);
+        const hasVisibleChildren = !!(subItems && subItems.length > 0);
+        const parentExplicitAllowedWithoutPath = !item.path && !!item.requiredPermission && canSee(item.requiredPermission, item.requiredKind);
+        const shouldShow = parentNavigable || hasVisibleChildren || parentExplicitAllowedWithoutPath;
+        if (!shouldShow) return null;
+        return { ...item, subItems } as NavItem;
+      })
+      .filter(Boolean) as NavItem[];
+    debug("othersItems", { count: result.length });
+    return result;
+  }, [canSee, state.token]);
+
   useEffect(() => {
-    let submenuMatched = false;
+    debug("route", location.pathname, { suppressAutoOpenPath, openSubmenu });
+    if (openSubmenu !== null) return; // ne pas écraser l'état ouvert manuellement
+    if (suppressAutoOpenPath === location.pathname) return; // l'utilisateur a fermé pour cette route
     ["main", "others"].forEach((menuType) => {
       const items = menuType === "main" ? navItems : othersItems;
       items.forEach((nav, index) => {
         if (nav.subItems) {
           nav.subItems.forEach((subItem) => {
             if (isActive(subItem.path)) {
-              setOpenSubmenu({
-                type: menuType as "main" | "others",
-                index,
-              });
-              submenuMatched = true;
+              debug("autoOpenSubmenu", { menuType, index });
+              setOpenSubmenu({ type: menuType as "main" | "others", index });
             }
           });
         }
       });
     });
+  }, [location.pathname, isActive, navItems, othersItems, openSubmenu, suppressAutoOpenPath]);
 
-    if (!submenuMatched) {
-      setOpenSubmenu(null);
+  // Réinitialiser la suppression quand on change de route
+  useEffect(() => {
+    if (suppressAutoOpenPath && suppressAutoOpenPath !== location.pathname) {
+      setSuppressAutoOpenPath(null);
     }
-  }, [location, isActive]);
+  }, [location.pathname, suppressAutoOpenPath]);
 
   useEffect(() => {
     if (openSubmenu !== null) {
       const key = `${openSubmenu.type}-${openSubmenu.index}`;
       if (subMenuRefs.current[key]) {
+        const h = subMenuRefs.current[key]?.scrollHeight || 0;
+        debug("measure", { key, h });
         setSubMenuHeight((prevHeights) => ({
           ...prevHeights,
-          [key]: subMenuRefs.current[key]?.scrollHeight || 0,
+          [key]: h,
         }));
       }
     }
   }, [openSubmenu]);
 
   const handleSubmenuToggle = (index: number, menuType: "main" | "others") => {
+    if (!(isExpanded || isHovered || isMobileOpen)) {
+      setIsHovered(true);
+    }
+    debug("toggleSubmenu", { index, menuType });
     setOpenSubmenu((prevOpenSubmenu) => {
-      if (
-        prevOpenSubmenu &&
-        prevOpenSubmenu.type === menuType &&
-        prevOpenSubmenu.index === index
-      ) {
+      debug("prevOpenSubmenu", prevOpenSubmenu);
+      if (prevOpenSubmenu && prevOpenSubmenu.type === menuType && prevOpenSubmenu.index === index) {
+        // L'utilisateur ferme manuellement le submenu pour la route en cours
+        setSuppressAutoOpenPath(location.pathname);
         return null;
       }
       return { type: menuType, index };
     });
+  };
+
+  const handleNavClick = (path: string, level: "root" | "sub") => (e: React.MouseEvent) => {
+    e.stopPropagation();
+    debug("clickLink", { level, path });
   };
 
   const renderMenuItems = (items: NavItem[], menuType: "main" | "others") => (
@@ -272,6 +349,7 @@ const AppSidebar: React.FC = () => {
             nav.path && (
               <Link
                 to={nav.path}
+                onClick={handleNavClick(nav.path, "root")}
                 className={`menu-item group ${
                   isActive(nav.path) ? "menu-item-active" : "menu-item-inactive"
                 }`}
@@ -300,7 +378,7 @@ const AppSidebar: React.FC = () => {
               style={{
                 height:
                   openSubmenu?.type === menuType && openSubmenu?.index === index
-                    ? `${subMenuHeight[`${menuType}-${index}`]}px`
+                    ? `${subMenuHeight[`${menuType}-${index}`] ?? (subMenuRefs.current[`${menuType}-${index}`]?.scrollHeight || 0)}px`
                     : "0px",
               }}
             >
@@ -309,6 +387,7 @@ const AppSidebar: React.FC = () => {
                   <li key={subItem.name}>
                     <Link
                       to={subItem.path}
+                      onClick={handleNavClick(subItem.path, "sub")}
                       className={`menu-dropdown-item ${
                         isActive(subItem.path)
                           ? "menu-dropdown-item-active"
