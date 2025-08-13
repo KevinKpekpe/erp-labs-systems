@@ -1,14 +1,38 @@
 import { useState } from "react";
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { ChevronLeftIcon, EyeCloseIcon, EyeIcon } from "../../icons";
 import Label from "../form/Label";
 import Input from "../form/input/InputField";
 import Checkbox from "../form/input/Checkbox";
 import Button from "../ui/button/Button";
+import { useAuth } from "../../context/AuthContext";
 
 export default function SignInForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [isChecked, setIsChecked] = useState(false);
+  const [companyCode, setCompanyCode] = useState("");
+  const [login, setLogin] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const { loginCompany } = useAuth();
+  const navigate = useNavigate();
+
+  const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setError(null);
+    setLoading(true);
+    try {
+      await loginCompany({ company_code: companyCode, login, password });
+      navigate("/");
+    } catch (err: unknown) {
+      const e = err as { message?: string };
+      setError(e?.message || "Échec de connexion");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="flex flex-col flex-1">
       <div className="w-full max-w-md pt-10 mx-auto">
@@ -41,19 +65,19 @@ export default function SignInForm() {
                 </span>
               </div>
             </div>
-            <form>
+            <form onSubmit={onSubmit}>
               <div className="space-y-6">
                 <div>
                   <Label>
                     Code Compagnie <span className="text-error-500">*</span>{" "}
                   </Label>
-                  <Input placeholder="Ex: LAB001" />
+                  <Input placeholder="Ex: 1001" value={companyCode} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCompanyCode(e.target.value)} />
                 </div>
                 <div>
                   <Label>
-                    Email <span className="text-error-500">*</span>{" "}
+                    Email ou Nom d'utilisateur <span className="text-error-500">*</span>{" "}
                   </Label>
-                  <Input placeholder="votre.email@laboratoire.com" />
+                  <Input placeholder="votre.email@laboratoire.com" value={login} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLogin(e.target.value)} />
                 </div>
                 <div>
                   <Label>
@@ -63,6 +87,8 @@ export default function SignInForm() {
                     <Input
                       type={showPassword ? "text" : "password"}
                       placeholder="Entrez votre mot de passe"
+                      value={password}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
                     />
                     <span
                       onClick={() => setShowPassword(!showPassword)}
@@ -76,6 +102,11 @@ export default function SignInForm() {
                     </span>
                   </div>
                 </div>
+                {error && (
+                  <div className="text-sm text-red-600">
+                    {error}
+                  </div>
+                )}
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <Checkbox checked={isChecked} onChange={setIsChecked} />
@@ -91,8 +122,8 @@ export default function SignInForm() {
                   </Link>
                 </div>
                 <div>
-                  <Button className="w-full" size="sm">
-                    Se connecter
+                  <Button className="w-full" size="sm" type="submit" disabled={loading}>
+                    {loading ? "Connexion..." : "Se connecter"}
                   </Button>
                 </div>
               </div>

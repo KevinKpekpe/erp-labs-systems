@@ -1,14 +1,36 @@
 import { useState } from "react";
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { ChevronLeftIcon, EyeCloseIcon, EyeIcon, LockIcon } from "../../icons";
 import Label from "../form/Label";
 import Input from "../form/input/InputField";
 import Checkbox from "../form/input/Checkbox";
 import Button from "../ui/button/Button";
+import { useAuth } from "../../context/AuthContext";
 
 export default function SignInSuperAdminForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [isChecked, setIsChecked] = useState(false);
+  const [login, setLogin] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const { loginSuperAdmin } = useAuth();
+  const navigate = useNavigate();
+  
+  const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setError(null);
+    setLoading(true);
+    try {
+      await loginSuperAdmin({ login, password });
+      navigate("/superadmin/home");
+    } catch (err: unknown) {
+      const e = err as { message?: string };
+      setError(e?.message || "Échec de connexion");
+    } finally {
+      setLoading(false);
+    }
+  };
   
   return (
     <div className="flex flex-col flex-1">
@@ -45,19 +67,13 @@ export default function SignInSuperAdminForm() {
                 </span>
               </div>
             </div>
-            <form>
+            <form onSubmit={onSubmit}>
               <div className="space-y-6">
-                <div>
-                  <Label>
-                    Code SuperAdmin <span className="text-error-500">*</span>{" "}
-                  </Label>
-                  <Input placeholder="Ex: SUPER001" />
-                </div>
                 <div>
                   <Label>
                     Nom d'utilisateur <span className="text-error-500">*</span>{" "}
                   </Label>
-                  <Input placeholder="admin" />
+                  <Input placeholder="admin" value={login} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLogin(e.target.value)} />
                 </div>
                 <div>
                   <Label>
@@ -67,6 +83,8 @@ export default function SignInSuperAdminForm() {
                     <Input
                       type={showPassword ? "text" : "password"}
                       placeholder="Entrez votre mot de passe"
+                      value={password}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
                     />
                     <span
                       onClick={() => setShowPassword(!showPassword)}
@@ -80,6 +98,11 @@ export default function SignInSuperAdminForm() {
                     </span>
                   </div>
                 </div>
+                {error && (
+                  <div className="text-sm text-red-600">
+                    {error}
+                  </div>
+                )}
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <Checkbox checked={isChecked} onChange={setIsChecked} />
@@ -95,8 +118,8 @@ export default function SignInSuperAdminForm() {
                   </Link>
                 </div>
                 <div>
-                  <Button className="w-full" size="sm">
-                    Se connecter
+                  <Button className="w-full" size="sm" type="submit" disabled={loading}>
+                    {loading ? "Connexion..." : "Se connecter"}
                   </Button>
                 </div>
               </div>
