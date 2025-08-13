@@ -1,0 +1,358 @@
+{
+  "info": {
+    "name": "ERP Labs System API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8000" },
+    { "key": "apiBase", "value": "{{baseUrl}}/api" },
+    { "key": "token", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Web",
+      "item": [
+        {
+          "name": "Home",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "text/html" }
+            ],
+            "url": { "raw": "{{baseUrl}}/" }
+          }
+        }
+      ]
+    },
+    {
+      "name": "SuperAdmin",
+      "item": [
+        {
+          "name": "Public",
+          "item": [
+            {
+              "name": "Login",
+              "request": {
+                "method": "POST",
+                "header": [
+                  { "key": "Accept", "value": "application/json" },
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": { "mode": "raw", "raw": "{\n  \"login\": \"admin\",\n  \"password\": \"secret123\"\n}" },
+                "url": { "raw": "{{apiBase}}/v1/superadmin/login" }
+              }
+            },
+            {
+              "name": "Forgot Password",
+              "request": {
+                "method": "POST",
+                "header": [
+                  { "key": "Accept", "value": "application/json" },
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": { "mode": "raw", "raw": "{\n  \"email\": \"superadmin@example.com\"\n}" },
+                "url": { "raw": "{{apiBase}}/v1/superadmin/forgot-password" }
+              }
+            },
+            {
+              "name": "Reset Password",
+              "request": {
+                "method": "POST",
+                "header": [
+                  { "key": "Accept", "value": "application/json" },
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": { "mode": "raw", "raw": "{\n  \"email\": \"superadmin@example.com\",\n  \"otp\": \"123456\",\n  \"new_password\": \"NewPassw0rd!\",\n  \"new_password_confirmation\": \"NewPassw0rd!\"\n}" },
+                "url": { "raw": "{{apiBase}}/v1/superadmin/reset-password" }
+              }
+            },
+            {
+              "name": "Resend OTP",
+              "request": {
+                "method": "POST",
+                "header": [
+                  { "key": "Accept", "value": "application/json" },
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": { "mode": "raw", "raw": "{\n  \"email\": \"superadmin@example.com\"\n}" },
+                "url": { "raw": "{{apiBase}}/v1/superadmin/resend-otp" }
+              }
+            }
+          ]
+        },
+        {
+          "name": "Protégé",
+          "auth": {
+            "type": "bearer",
+            "bearer": [ { "key": "token", "value": "{{token}}", "type": "string" } ]
+          },
+          "item": [
+            {
+              "name": "Me",
+              "request": {
+                "method": "GET",
+                "header": [ { "key": "Accept", "value": "application/json" } ],
+                "url": { "raw": "{{apiBase}}/v1/superadmin/me" }
+              }
+            },
+            {
+              "name": "Logout",
+              "request": {
+                "method": "POST",
+                "header": [ { "key": "Accept", "value": "application/json" } ],
+                "url": { "raw": "{{apiBase}}/v1/superadmin/logout" }
+              }
+            },
+            {
+              "name": "Update Profile",
+              "request": {
+                "method": "POST",
+                "header": [
+                  { "key": "Accept", "value": "application/json" },
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": { "mode": "raw", "raw": "{\n  \"name\": \"Super Admin\",\n  \"username\": \"superadmin\",\n  \"email\": \"superadmin@example.com\",\n  \"telephone\": \"+243900000000\",\n  \"sexe\": \"M\",\n  \"remove_photo\": false\n}" },
+                "url": { "raw": "{{apiBase}}/v1/superadmin/profile" }
+              }
+            },
+            {
+              "name": "Change Password",
+              "request": {
+                "method": "POST",
+                "header": [
+                  { "key": "Accept", "value": "application/json" },
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": { "mode": "raw", "raw": "{\n  \"current_password\": \"OldPassw0rd!\",\n  \"new_password\": \"NewPassw0rd!\",\n  \"new_password_confirmation\": \"NewPassw0rd!\"\n}" },
+                "url": { "raw": "{{apiBase}}/v1/superadmin/change-password" }
+              }
+            },
+            {
+              "name": "Permissions",
+              "item": [
+                { "name": "Index", "request": { "method": "GET", "header": [ { "key": "Accept", "value": "application/json" } ], "url": { "raw": "{{apiBase}}/v1/superadmin/permissions" } } },
+                { "name": "Store", "request": { "method": "POST", "header": [ { "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" } ], "body": { "mode": "raw", "raw": "{\n  \"permission_name\": \"CAN_VIEW_DASHBOARD\",\n  \"permission_code\": \"VIEW_DASHBOARD\"\n}" }, "url": { "raw": "{{apiBase}}/v1/superadmin/permissions" } } },
+                { "name": "Show", "request": { "method": "GET", "header": [ { "key": "Accept", "value": "application/json" } ], "url": { "raw": "{{apiBase}}/v1/superadmin/permissions/:permission" } } },
+                { "name": "Update", "request": { "method": "PUT", "header": [ { "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" } ], "body": { "mode": "raw", "raw": "{\n  \"permission_name\": \"CAN_EDIT_USER\",\n  \"permission_code\": \"EDIT_USER\"\n}" }, "url": { "raw": "{{apiBase}}/v1/superadmin/permissions/:permission" } } },
+                { "name": "Delete", "request": { "method": "DELETE", "header": [ { "key": "Accept", "value": "application/json" } ], "url": { "raw": "{{apiBase}}/v1/superadmin/permissions/:permission" } } },
+                { "name": "Trashed", "request": { "method": "GET", "header": [ { "key": "Accept", "value": "application/json" } ], "url": { "raw": "{{apiBase}}/v1/superadmin/permissions-trashed" } } },
+                { "name": "Restore", "request": { "method": "POST", "header": [ { "key": "Accept", "value": "application/json" } ], "url": { "raw": "{{apiBase}}/v1/superadmin/permissions/:id/restore" } } },
+                { "name": "Force Delete", "request": { "method": "DELETE", "header": [ { "key": "Accept", "value": "application/json" } ], "url": { "raw": "{{apiBase}}/v1/superadmin/permissions/:id/force" } } }
+              ]
+            },
+            {
+              "name": "Companies",
+              "item": [
+                { "name": "Index", "request": { "method": "GET", "header": [ { "key": "Accept", "value": "application/json" } ], "url": { "raw": "{{apiBase}}/v1/superadmin/companies" } } },
+                { "name": "Store", "request": { "method": "POST", "header": [ { "key": "Accept", "value": "application/json" } ], "body": { "mode": "formdata", "formdata": [ { "key": "logo", "type": "file", "src": "" }, { "key": "nom_company", "type": "text", "value": "ClinLab" }, { "key": "adresse", "type": "text", "value": "10, Ave Test" }, { "key": "email", "type": "text", "value": "contact@clinlab.com" }, { "key": "contact", "type": "text", "value": "+243811111111" }, { "key": "secteur_activite", "type": "text", "value": "Privé" }, { "key": "type_etablissement", "type": "text", "value": "Privé" }, { "key": "description", "type": "text", "value": "Laboratoire d'analyses" }, { "key": "admin_username", "type": "text", "value": "admin" }, { "key": "admin_email", "type": "text", "value": "admin@clinlab.com" } ] }, "url": { "raw": "{{apiBase}}/v1/superadmin/companies" } } },
+                { "name": "Update", "request": { "method": "POST", "header": [ { "key": "Accept", "value": "application/json" } ], "body": { "mode": "formdata", "formdata": [ { "key": "logo", "type": "file", "src": "" }, { "key": "remove_logo", "type": "text", "value": "false" }, { "key": "nom_company", "type": "text", "value": "ClinLab Updated" }, { "key": "adresse", "type": "text", "value": "20, Ave Test" }, { "key": "email", "type": "text", "value": "info@clinlab.com" }, { "key": "contact", "type": "text", "value": "+243822222222" }, { "key": "secteur_activite", "type": "text", "value": "Public" }, { "key": "type_etablissement", "type": "text", "value": "Public" }, { "key": "description", "type": "text", "value": "Maj des infos" } ] }, "url": { "raw": "{{apiBase}}/v1/superadmin/companies/:company" } } },
+                { "name": "Delete", "request": { "method": "DELETE", "header": [ { "key": "Accept", "value": "application/json" } ], "url": { "raw": "{{apiBase}}/v1/superadmin/companies/:company" } } },
+                { "name": "Trashed", "request": { "method": "GET", "header": [ { "key": "Accept", "value": "application/json" } ], "url": { "raw": "{{apiBase}}/v1/superadmin/companies-trashed" } } },
+                { "name": "Restore", "request": { "method": "POST", "header": [ { "key": "Accept", "value": "application/json" } ], "url": { "raw": "{{apiBase}}/v1/superadmin/companies/:id/restore" } } },
+                { "name": "Force Delete", "request": { "method": "DELETE", "header": [ { "key": "Accept", "value": "application/json" } ], "url": { "raw": "{{apiBase}}/v1/superadmin/companies/:id/force" } } }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "V1 Entreprise",
+      "item": [
+        {
+          "name": "Public",
+          "item": [
+            { "name": "Login", "request": { "method": "POST", "header": [ { "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" } ], "body": { "mode": "raw", "raw": "{\n  \"company_code\": 1001,\n  \"login\": \"user1\",\n  \"password\": \"secret123\"\n}" }, "url": { "raw": "{{apiBase}}/v1/auth/login" } } },
+            { "name": "Forgot Password", "request": { "method": "POST", "header": [ { "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" } ], "body": { "mode": "raw", "raw": "{\n  \"company_code\": 1001,\n  \"email\": \"user1@example.com\"\n}" }, "url": { "raw": "{{apiBase}}/v1/auth/forgot-password" } } },
+            { "name": "Reset Password", "request": { "method": "POST", "header": [ { "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" } ], "body": { "mode": "raw", "raw": "{\n  \"company_code\": 1001,\n  \"email\": \"user1@example.com\",\n  \"otp\": \"123456\",\n  \"new_password\": \"NewPassw0rd!\",\n  \"new_password_confirmation\": \"NewPassw0rd!\"\n}" }, "url": { "raw": "{{apiBase}}/v1/auth/reset-password" } } },
+            { "name": "Resend OTP", "request": { "method": "POST", "header": [ { "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" } ], "body": { "mode": "raw", "raw": "{\n  \"company_code\": 1001,\n  \"email\": \"user1@example.com\"\n}" }, "url": { "raw": "{{apiBase}}/v1/auth/resend-otp" } } }
+          ]
+        },
+        {
+          "name": "Protégé",
+          "auth": {
+            "type": "bearer",
+            "bearer": [ { "key": "token", "value": "{{token}}", "type": "string" } ]
+          },
+          "item": [
+            { "name": "Change Password", "request": { "method": "POST", "header": [ { "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" } ], "body": { "mode": "raw", "raw": "{\n  \"current_password\": \"OldPassw0rd!\",\n  \"new_password\": \"NewPassw0rd!\",\n  \"new_password_confirmation\": \"NewPassw0rd!\"\n}" }, "url": { "raw": "{{apiBase}}/v1/auth/change-password" } } },
+            { "name": "Logout", "request": { "method": "POST", "header": [ { "key": "Accept", "value": "application/json" } ], "url": { "raw": "{{apiBase}}/v1/auth/logout" } } },
+            { "name": "Me", "request": { "method": "GET", "header": [ { "key": "Accept", "value": "application/json" } ], "url": { "raw": "{{apiBase}}/v1/auth/me" } } },
+            { "name": "Update Profile", "request": { "method": "POST", "header": [ { "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" } ], "body": { "mode": "raw", "raw": "{\n  \"username\": \"user1\",\n  \"email\": \"user1@example.com\",\n  \"telephone\": \"+243900000001\",\n  \"sexe\": \"F\",\n  \"remove_photo\": false\n}" }, "url": { "raw": "{{apiBase}}/v1/auth/profile" } } },
+            { "name": "Update My Company", "request": { "method": "POST", "header": [ { "key": "Accept", "value": "application/json" } ], "body": { "mode": "formdata", "formdata": [ { "key": "logo", "type": "file", "src": "" }, { "key": "remove_logo", "type": "text", "value": "false" }, { "key": "nom_company", "type": "text", "value": "ClinLab" }, { "key": "adresse", "type": "text", "value": "10, Ave Test" }, { "key": "email", "type": "text", "value": "contact@clinlab.com" }, { "key": "contact", "type": "text", "value": "+243811111111" }, { "key": "secteur_activite", "type": "text", "value": "Privé" }, { "key": "type_etablissement", "type": "text", "value": "Privé" }, { "key": "description", "type": "text", "value": "Laboratoire d'analyses" } ] }, "url": { "raw": "{{apiBase}}/v1/company" } } },
+            {
+              "name": "Rôles",
+              "item": [
+                { "name": "Index", "request": { "method": "GET", "header": [ { "key": "Accept", "value": "application/json" } ], "url": { "raw": "{{apiBase}}/v1/roles" } } },
+                { "name": "Show", "request": { "method": "GET", "header": [ { "key": "Accept", "value": "application/json" } ], "url": { "raw": "{{apiBase}}/v1/roles/:role" } } },
+                { "name": "Store", "request": { "method": "POST", "header": [ { "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" } ], "body": { "mode": "raw", "raw": "{\n  \"nom_role\": \"Secretaire\",\n  \"permissions\": [1, 2, 3]\n}" }, "url": { "raw": "{{apiBase}}/v1/roles" } } },
+                { "name": "Update", "request": { "method": "PUT", "header": [ { "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" } ], "body": { "mode": "raw", "raw": "{\n  \"nom_role\": \"Secretaire Senior\",\n  \"permissions\": [1, 4]\n}" }, "url": { "raw": "{{apiBase}}/v1/roles/:role" } } },
+                { "name": "Delete", "request": { "method": "DELETE", "header": [ { "key": "Accept", "value": "application/json" } ], "url": { "raw": "{{apiBase}}/v1/roles/:role" } } },
+                { "name": "Trashed", "request": { "method": "GET", "header": [ { "key": "Accept", "value": "application/json" } ], "url": { "raw": "{{apiBase}}/v1/roles-trashed" } } },
+                { "name": "Restore", "request": { "method": "POST", "header": [ { "key": "Accept", "value": "application/json" } ], "url": { "raw": "{{apiBase}}/v1/roles/:id/restore" } } },
+                { "name": "Force Delete", "request": { "method": "DELETE", "header": [ { "key": "Accept", "value": "application/json" } ], "url": { "raw": "{{apiBase}}/v1/roles/:id/force" } } }
+              ]
+            },
+            {
+              "name": "Utilisateurs",
+              "item": [
+                { "name": "Index", "request": { "method": "GET", "header": [ { "key": "Accept", "value": "application/json" } ], "url": { "raw": "{{apiBase}}/v1/users" } } },
+                { "name": "Store", "request": { "method": "POST", "header": [ { "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" } ], "body": { "mode": "raw", "raw": "{\n  \"username\": \"user2\",\n  \"nom\": \"Doe\",\n  \"postnom\": \"Junior\",\n  \"email\": \"user2@example.com\",\n  \"role_id\": 2,\n  \"telephone\": \"+243911111111\",\n  \"sexe\": \"M\"\n}" }, "url": { "raw": "{{apiBase}}/v1/users" } } },
+                { "name": "Update", "request": { "method": "POST", "header": [ { "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" } ], "body": { "mode": "raw", "raw": "{\n  \"username\": \"user2\",\n  \"email\": \"user2@newmail.com\",\n  \"role_id\": 3,\n  \"is_active\": true,\n  \"telephone\": \"+243922222222\",\n  \"sexe\": \"M\",\n  \"remove_photo\": false\n}" }, "url": { "raw": "{{apiBase}}/v1/users/:user" } } },
+                { "name": "Delete", "request": { "method": "DELETE", "header": [ { "key": "Accept", "value": "application/json" } ], "url": { "raw": "{{apiBase}}/v1/users/:user" } } },
+                { "name": "Trashed", "request": { "method": "GET", "header": [ { "key": "Accept", "value": "application/json" } ], "url": { "raw": "{{apiBase}}/v1/users-trashed" } } },
+                { "name": "Restore", "request": { "method": "POST", "header": [ { "key": "Accept", "value": "application/json" } ], "url": { "raw": "{{apiBase}}/v1/users/:id/restore" } } },
+                { "name": "Force Delete", "request": { "method": "DELETE", "header": [ { "key": "Accept", "value": "application/json" } ], "url": { "raw": "{{apiBase}}/v1/users/:id/force" } } }
+              ]
+            },
+            {
+              "name": "Stock",
+              "item": [
+                {
+                  "name": "Catégories",
+                  "item": [
+                    { "name": "Index", "request": { "method": "GET", "header": [ { "key": "Accept", "value": "application/json" } ], "url": { "raw": "{{apiBase}}/v1/stock/categories" } } },
+                    { "name": "Store", "request": { "method": "POST", "header": [ { "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" } ], "body": { "mode": "raw", "raw": "{\n  \"nom_categorie\": \"Réactifs\"\n}" }, "url": { "raw": "{{apiBase}}/v1/stock/categories" } } },
+                    { "name": "Show", "request": { "method": "GET", "header": [ { "key": "Accept", "value": "application/json" } ], "url": { "raw": "{{apiBase}}/v1/stock/categories/:category" } } },
+                    { "name": "Update", "request": { "method": "PUT", "header": [ { "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" } ], "body": { "mode": "raw", "raw": "{\n  \"nom_categorie\": \"Consommables\"\n}" }, "url": { "raw": "{{apiBase}}/v1/stock/categories/:category" } } },
+                    { "name": "Delete", "request": { "method": "DELETE", "header": [ { "key": "Accept", "value": "application/json" } ], "url": { "raw": "{{apiBase}}/v1/stock/categories/:category" } } },
+                    { "name": "Trashed", "request": { "method": "GET", "header": [ { "key": "Accept", "value": "application/json" } ], "url": { "raw": "{{apiBase}}/v1/stock/categories-trashed" } } },
+                    { "name": "Restore", "request": { "method": "POST", "header": [ { "key": "Accept", "value": "application/json" } ], "url": { "raw": "{{apiBase}}/v1/stock/categories/:id/restore" } } },
+                    { "name": "Force Delete", "request": { "method": "DELETE", "header": [ { "key": "Accept", "value": "application/json" } ], "url": { "raw": "{{apiBase}}/v1/stock/categories/:id/force" } } }
+                  ]
+                },
+                {
+                  "name": "Articles",
+                  "item": [
+                    { "name": "Index", "request": { "method": "GET", "header": [ { "key": "Accept", "value": "application/json" } ], "url": { "raw": "{{apiBase}}/v1/stock/articles" } } },
+                    { "name": "Store", "request": { "method": "POST", "header": [ { "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" } ], "body": { "mode": "raw", "raw": "{\n  \"categorie_id\": 1,\n  \"nom_article\": \"Gants\",\n  \"description\": \"Taille M\",\n  \"fournisseur\": \"Acme\",\n  \"prix_unitaire\": 2.5,\n  \"unite_mesure\": \"paquet\"\n}" }, "url": { "raw": "{{apiBase}}/v1/stock/articles" } } },
+                    { "name": "Show", "request": { "method": "GET", "header": [ { "key": "Accept", "value": "application/json" } ], "url": { "raw": "{{apiBase}}/v1/stock/articles/:article" } } },
+                    { "name": "Update", "request": { "method": "PUT", "header": [ { "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" } ], "body": { "mode": "raw", "raw": "{\n  \"nom_article\": \"Gants nitrile\",\n  \"prix_unitaire\": 3.0\n}" }, "url": { "raw": "{{apiBase}}/v1/stock/articles/:article" } } },
+                    { "name": "Delete", "request": { "method": "DELETE", "header": [ { "key": "Accept", "value": "application/json" } ], "url": { "raw": "{{apiBase}}/v1/stock/articles/:article" } } },
+                    { "name": "Trashed", "request": { "method": "GET", "header": [ { "key": "Accept", "value": "application/json" } ], "url": { "raw": "{{apiBase}}/v1/stock/articles-trashed" } } },
+                    { "name": "Restore", "request": { "method": "POST", "header": [ { "key": "Accept", "value": "application/json" } ], "url": { "raw": "{{apiBase}}/v1/stock/articles/:id/restore" } } },
+                    { "name": "Force Delete", "request": { "method": "DELETE", "header": [ { "key": "Accept", "value": "application/json" } ], "url": { "raw": "{{apiBase}}/v1/stock/articles/:id/force" } } }
+                  ]
+                },
+                {
+                  "name": "Stocks",
+                  "item": [
+                    { "name": "Index", "request": { "method": "GET", "header": [ { "key": "Accept", "value": "application/json" } ], "url": { "raw": "{{apiBase}}/v1/stock/stocks" } } },
+                    { "name": "Store", "request": { "method": "POST", "header": [ { "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" } ], "body": { "mode": "raw", "raw": "{\n  \"article_id\": 1,\n  \"quantite_actuelle\": 100,\n  \"seuil_critique\": 10\n}" }, "url": { "raw": "{{apiBase}}/v1/stock/stocks" } } },
+                    { "name": "Show", "request": { "method": "GET", "header": [ { "key": "Accept", "value": "application/json" } ], "url": { "raw": "{{apiBase}}/v1/stock/stocks/:stock" } } },
+                    { "name": "Update", "request": { "method": "PUT", "header": [ { "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" } ], "body": { "mode": "raw", "raw": "{\n  \"seuil_critique\": 20\n}" }, "url": { "raw": "{{apiBase}}/v1/stock/stocks/:stock" } } },
+                    { "name": "Delete", "request": { "method": "DELETE", "header": [ { "key": "Accept", "value": "application/json" } ], "url": { "raw": "{{apiBase}}/v1/stock/stocks/:stock" } } },
+                    { "name": "Trashed", "request": { "method": "GET", "header": [ { "key": "Accept", "value": "application/json" } ], "url": { "raw": "{{apiBase}}/v1/stock/stocks-trashed" } } },
+                    { "name": "Restore", "request": { "method": "POST", "header": [ { "key": "Accept", "value": "application/json" } ], "url": { "raw": "{{apiBase}}/v1/stock/stocks/:id/restore" } } },
+                    { "name": "Force Delete", "request": { "method": "DELETE", "header": [ { "key": "Accept", "value": "application/json" } ], "url": { "raw": "{{apiBase}}/v1/stock/stocks/:id/force" } } }
+                  ]
+                },
+                {
+                  "name": "Mouvements",
+                  "item": [
+                    { "name": "Index", "request": { "method": "GET", "header": [ { "key": "Accept", "value": "application/json" } ], "url": { "raw": "{{apiBase}}/v1/stock/movements" } } },
+                    { "name": "Store", "request": { "method": "POST", "header": [ { "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" } ], "body": { "mode": "raw", "raw": "{\n  \"stock_id\": 1,\n  \"quantite\": 5,\n  \"type_mouvement\": \"Sortie\",\n  \"date_mouvement\": \"2025-08-10\",\n  \"demande_id\": null,\n  \"motif\": \"Consommation\"\n}" }, "url": { "raw": "{{apiBase}}/v1/stock/movements" } } }
+                  ]
+                },
+                {
+                  "name": "Alertes",
+                  "item": [
+                    { "name": "Index", "request": { "method": "GET", "header": [ { "key": "Accept", "value": "application/json" } ], "url": { "raw": "{{apiBase}}/v1/stock/alerts" } } }
+                  ]
+                }
+              ]
+            },
+            {
+              "name": "Patients",
+              "item": [
+                {
+                  "name": "Types",
+                  "item": [
+                    { "name": "Index", "request": { "method": "GET", "header": [ { "key": "Accept", "value": "application/json" } ], "url": { "raw": "{{apiBase}}/v1/patients/types" } } },
+                    { "name": "Store", "request": { "method": "POST", "header": [ { "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" } ], "body": { "mode": "raw", "raw": "{\n  \"nom_type\": \"Entreprise\",\n  \"description\": \"Employés\"\n}" }, "url": { "raw": "{{apiBase}}/v1/patients/types" } } },
+                    { "name": "Show", "request": { "method": "GET", "header": [ { "key": "Accept", "value": "application/json" } ], "url": { "raw": "{{apiBase}}/v1/patients/types/:type" } } },
+                    { "name": "Update", "request": { "method": "PUT", "header": [ { "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" } ], "body": { "mode": "raw", "raw": "{\n  \"nom_type\": \"VIP\",\n  \"description\": \"Patients prioritaires\"\n}" }, "url": { "raw": "{{apiBase}}/v1/patients/types/:type" } } },
+                    { "name": "Delete", "request": { "method": "DELETE", "header": [ { "key": "Accept", "value": "application/json" } ], "url": { "raw": "{{apiBase}}/v1/patients/types/:type" } } },
+                    { "name": "Trashed", "request": { "method": "GET", "header": [ { "key": "Accept", "value": "application/json" } ], "url": { "raw": "{{apiBase}}/v1/patients/types-trashed" } } },
+                    { "name": "Restore", "request": { "method": "POST", "header": [ { "key": "Accept", "value": "application/json" } ], "url": { "raw": "{{apiBase}}/v1/patients/types/:id/restore" } } },
+                    { "name": "Force Delete", "request": { "method": "DELETE", "header": [ { "key": "Accept", "value": "application/json" } ], "url": { "raw": "{{apiBase}}/v1/patients/types/:id/force" } } }
+                  ]
+                },
+                {
+                  "name": "Médecins",
+                  "item": [
+                    { "name": "Index", "request": { "method": "GET", "header": [ { "key": "Accept", "value": "application/json" } ], "url": { "raw": "{{apiBase}}/v1/doctors" } } },
+                    { "name": "Store", "request": { "method": "POST", "header": [ { "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" } ], "body": { "mode": "raw", "raw": "{\n  \"nom\": \"Mbayo\",\n  \"prenom\": \"Jean\",\n  \"date_naissance\": \"1980-01-01\",\n  \"sexe\": \"M\",\n  \"contact\": \"+243930000000\",\n  \"numero_identification\": \"MED-0001\"\n}" }, "url": { "raw": "{{apiBase}}/v1/doctors" } } },
+                    { "name": "Show", "request": { "method": "GET", "header": [ { "key": "Accept", "value": "application/json" } ], "url": { "raw": "{{apiBase}}/v1/doctors/:doctor" } } },
+                    { "name": "Update", "request": { "method": "PUT", "header": [ { "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" } ], "body": { "mode": "raw", "raw": "{\n  \"contact\": \"+243931111111\"\n}" }, "url": { "raw": "{{apiBase}}/v1/doctors/:doctor" } } },
+                    { "name": "Delete", "request": { "method": "DELETE", "header": [ { "key": "Accept", "value": "application/json" } ], "url": { "raw": "{{apiBase}}/v1/doctors/:doctor" } } },
+                    { "name": "Trashed", "request": { "method": "GET", "header": [ { "key": "Accept", "value": "application/json" } ], "url": { "raw": "{{apiBase}}/v1/doctors-trashed" } } },
+                    { "name": "Restore", "request": { "method": "POST", "header": [ { "key": "Accept", "value": "application/json" } ], "url": { "raw": "{{apiBase}}/v1/doctors/:id/restore" } } },
+                    { "name": "Force Delete", "request": { "method": "DELETE", "header": [ { "key": "Accept", "value": "application/json" } ], "url": { "raw": "{{apiBase}}/v1/doctors/:id/force" } } }
+                  ]
+                },
+                {
+                  "name": "Patients",
+                  "item": [
+                    { "name": "Index", "request": { "method": "GET", "header": [ { "key": "Accept", "value": "application/json" } ], "url": { "raw": "{{apiBase}}/v1/patients" } } },
+                    { "name": "Store", "request": { "method": "POST", "header": [ { "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" } ], "body": { "mode": "raw", "raw": "{\n  \"nom\": \"Kabasele\",\n  \"postnom\": \"\",\n  \"prenom\": \"Marie\",\n  \"email\": \"\",\n  \"date_naissance\": \"1995-05-20\",\n  \"sexe\": \"F\",\n  \"adresse\": \"Av. Test 123\",\n  \"contact\": \"+243940000000\",\n  \"type_patient_id\": 1,\n  \"medecin_resident_id\": null\n}" }, "url": { "raw": "{{apiBase}}/v1/patients" } } },
+                    { "name": "Show", "request": { "method": "GET", "header": [ { "key": "Accept", "value": "application/json" } ], "url": { "raw": "{{apiBase}}/v1/patients/:patient" } } },
+                    { "name": "Update", "request": { "method": "PUT", "header": [ { "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" } ], "body": { "mode": "raw", "raw": "{\n  \"adresse\": \"Av. Nouvelle 45\",\n  \"contact\": \"+243940000111\"\n}" }, "url": { "raw": "{{apiBase}}/v1/patients/:patient" } } },
+                    { "name": "Delete", "request": { "method": "DELETE", "header": [ { "key": "Accept", "value": "application/json" } ], "url": { "raw": "{{apiBase}}/v1/patients/:patient" } } },
+                    { "name": "Trashed", "request": { "method": "GET", "header": [ { "key": "Accept", "value": "application/json" } ], "url": { "raw": "{{apiBase}}/v1/patients-trashed" } } },
+                    { "name": "Restore", "request": { "method": "POST", "header": [ { "key": "Accept", "value": "application/json" } ], "url": { "raw": "{{apiBase}}/v1/patients/:id/restore" } } },
+                    { "name": "Force Delete", "request": { "method": "DELETE", "header": [ { "key": "Accept", "value": "application/json" } ], "url": { "raw": "{{apiBase}}/v1/patients/:id/force" } } }
+                  ]
+                }
+              ]
+            },
+            {
+              "name": "Examens",
+              "item": [
+                { "name": "Index", "request": { "method": "GET", "header": [ { "key": "Accept", "value": "application/json" } ], "url": { "raw": "{{apiBase}}/v1/exams" } } },
+                { "name": "Store", "request": { "method": "POST", "header": [ { "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" } ], "body": { "mode": "raw", "raw": "{\n  \"nom_examen\": \"Glycémie\",\n  \"description\": \"A jeun\",\n  \"prix\": 15,\n  \"delai_rendu_estime\": 24,\n  \"unites_mesure\": \"mg/dL\",\n  \"valeurs_reference\": \"70-100\",\n  \"type_echantillon\": \"Sang\",\n  \"conditions_pre_analytiques\": \"8h de jeûne\",\n  \"equipement_reactifs_necessaires\": \"Reactif X\",\n  \"articles\": [\n    { \"article_id\": 1, \"quantite_utilisee\": 0.5 }\n  ]\n}" }, "url": { "raw": "{{apiBase}}/v1/exams" } } },
+                { "name": "Show", "request": { "method": "GET", "header": [ { "key": "Accept", "value": "application/json" } ], "url": { "raw": "{{apiBase}}/v1/exams/:exam" } } },
+                { "name": "Update", "request": { "method": "PUT", "header": [ { "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" } ], "body": { "mode": "raw", "raw": "{\n  \"prix\": 18,\n  \"delai_rendu_estime\": 12,\n  \"articles\": [\n    { \"article_id\": 1, \"quantite_utilisee\": 0.4 }\n  ]\n}" }, "url": { "raw": "{{apiBase}}/v1/exams/:exam" } } },
+                { "name": "Delete", "request": { "method": "DELETE", "header": [ { "key": "Accept", "value": "application/json" } ], "url": { "raw": "{{apiBase}}/v1/exams/:exam" } } },
+                { "name": "Trashed", "request": { "method": "GET", "header": [ { "key": "Accept", "value": "application/json" } ], "url": { "raw": "{{apiBase}}/v1/exams-trashed" } } },
+                { "name": "Restore", "request": { "method": "POST", "header": [ { "key": "Accept", "value": "application/json" } ], "url": { "raw": "{{apiBase}}/v1/exams/:id/restore" } } },
+                { "name": "Force Delete", "request": { "method": "DELETE", "header": [ { "key": "Accept", "value": "application/json" } ], "url": { "raw": "{{apiBase}}/v1/exams/:id/force" } } }
+              ]
+            },
+            {
+              "name": "Demandes d'examen",
+              "item": [
+                { "name": "Index", "request": { "method": "GET", "header": [ { "key": "Accept", "value": "application/json" } ], "url": { "raw": "{{apiBase}}/v1/exam-requests" } } },
+                { "name": "Store", "request": { "method": "POST", "header": [ { "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" } ], "body": { "mode": "raw", "raw": "{\n  \"patient_id\": 1,\n  \"medecin_prescripteur_id\": null,\n  \"medecin_prescripteur_externe_nom\": \"\",\n  \"medecin_prescripteur_externe_prenom\": \"\",\n  \"date_demande\": \"2025-08-10\",\n  \"note\": \"\",\n  \"examens\": [1, 2]\n}" }, "url": { "raw": "{{apiBase}}/v1/exam-requests" } } },
+                { "name": "Show", "request": { "method": "GET", "header": [ { "key": "Accept", "value": "application/json" } ], "url": { "raw": "{{apiBase}}/v1/exam-requests/:examRequest" } } },
+                { "name": "Update", "request": { "method": "PUT", "header": [ { "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" } ], "body": { "mode": "raw", "raw": "{\n  \"statut_demande\": \"En cours\",\n  \"note\": \"Prélèvement effectué\"\n}" }, "url": { "raw": "{{apiBase}}/v1/exam-requests/:examRequest" } } },
+                { "name": "Delete", "request": { "method": "DELETE", "header": [ { "key": "Accept", "value": "application/json" } ], "url": { "raw": "{{apiBase}}/v1/exam-requests/:examRequest" } } },
+                { "name": "By Patient", "request": { "method": "GET", "header": [ { "key": "Accept", "value": "application/json" } ], "url": { "raw": "{{apiBase}}/v1/patients/:patient/exam-requests" } } },
+                { "name": "By Doctor", "request": { "method": "GET", "header": [ { "key": "Accept", "value": "application/json" } ], "url": { "raw": "{{apiBase}}/v1/doctors/:doctor/exam-requests" } } }
+              ]
+            },
+            {
+              "name": "Paiements",
+              "item": [
+                { "name": "Index", "request": { "method": "GET", "header": [ { "key": "Accept", "value": "application/json" } ], "url": { "raw": "{{apiBase}}/v1/payments" } } },
+                { "name": "Store", "request": { "method": "POST", "header": [ { "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" } ], "body": { "mode": "raw", "raw": "{\n  \"facture_id\": 1,\n  \"date_paiement\": \"2025-08-10\",\n  \"montant_paye\": 45.5,\n  \"methode_paiement\": \"Caisse\",\n  \"reference_paiement\": \"REC-2025-0001\"\n}" }, "url": { "raw": "{{apiBase}}/v1/payments" } } },
+                { "name": "Show", "request": { "method": "GET", "header": [ { "key": "Accept", "value": "application/json" } ], "url": { "raw": "{{apiBase}}/v1/payments/:payment" } } },
+                { "name": "Delete", "request": { "method": "DELETE", "header": [ { "key": "Accept", "value": "application/json" } ], "url": { "raw": "{{apiBase}}/v1/payments/:payment" } } },
+                { "name": "By Patient", "request": { "method": "GET", "header": [ { "key": "Accept", "value": "application/json" } ], "url": { "raw": "{{apiBase}}/v1/patients/:patient/payments" } } }
+              ]
+            },
+            {
+              "name": "Factures",
+              "item": [
+                { "name": "Index", "request": { "method": "GET", "header": [ { "key": "Accept", "value": "application/json" } ], "url": { "raw": "{{apiBase}}/v1/invoices" } } },
+                { "name": "Show", "request": { "method": "GET", "header": [ { "key": "Accept", "value": "application/json" } ], "url": { "raw": "{{apiBase}}/v1/invoices/:invoice" } } },
+                { "name": "Delete", "request": { "method": "DELETE", "header": [ { "key": "Accept", "value": "application/json" } ], "url": { "raw": "{{apiBase}}/v1/invoices/:invoice" } } },
+                { "name": "By Patient", "request": { "method": "GET", "header": [ { "key": "Accept", "value": "application/json" } ], "url": { "raw": "{{apiBase}}/v1/patients/:patient/invoices" } } }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

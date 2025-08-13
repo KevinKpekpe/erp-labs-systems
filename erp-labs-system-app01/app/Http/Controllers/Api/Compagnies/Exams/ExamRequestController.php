@@ -160,9 +160,18 @@ class ExamRequestController extends Controller
         DB::transaction(function () use ($examRequest, $data) {
             // transitions de statut simples
             if (isset($data['statut_demande'])) {
-                $examRequest->update(['statut_demande' => $data['statut_demande']]);
+                $current = $examRequest->statut_demande;
+                $next = $data['statut_demande'];
+                // Règles de transition: En attente -> En cours -> Terminée
+                if ($next === 'En cours' && $current !== 'En attente') {
+                    throw new \App\Exceptions\ApiException('exam_requests.invalid_transition', 422, 'INVALID_STATUS_TRANSITION');
+                }
+                if ($next === 'Terminée' && $current !== 'En cours') {
+                    throw new \App\Exceptions\ApiException('exam_requests.invalid_transition', 422, 'INVALID_STATUS_TRANSITION');
+                }
+
                 // Consommation stock auto sur passage "En cours"
-                if ($data['statut_demande'] === 'En cours') {
+                if ($next === 'En cours') {
                     $companyId = $examRequest->company_id;
                     $details = $examRequest->details()->get(['examen_id']);
                     $examIds = $details->pluck('examen_id')->all();
@@ -220,7 +229,13 @@ class ExamRequestController extends Controller
                         }
                     }
                 }
-                if ($data['statut_demande'] === 'Terminée') {
+
+                // Passage à Terminée: exiger que tous les résultats soient saisis
+                if ($next === 'Terminée') {
+                    $missing = $examRequest->details()->whereNull('resultat')->count();
+                    if ($missing > 0) {
+                        throw new \App\Exceptions\ApiException('exam_requests.results_missing', 422, 'RESULTS_MISSING');
+                    }
                     // Générer facture automatique au moment de la terminaison
                     $companyId = $examRequest->company_id;
                     $patientId = $examRequest->patient_id;
@@ -263,6 +278,9 @@ class ExamRequestController extends Controller
                         }
                     }
                 }
+
+                // Finalement, appliquer le changement de statut
+                $examRequest->update(['statut_demande' => $next]);
             }
 
             if (array_key_exists('note', $data)) {
@@ -276,9 +294,29 @@ class ExamRequestController extends Controller
     public function destroy(ExamRequest $examRequest)
     {
         $this->authorizeRequest($examRequest);
-        // Annulation autorisée si non Terminée
+        // Annulation: interdite si Terminée; si En cours, rollback des déductions
         if ($examRequest->statut_demande === 'Terminée') {
             return ApiResponse::error('exam_requests.cannot_cancel_finished', 422, 'CANNOT_CANCEL');
+        }
+        if ($examRequest->statut_demande === 'En cours') {
+            // Reprise de stock: reconstituer quantités déduites pour cette demande
+            DB::transaction(function () use ($examRequest) {
+                $companyId = $examRequest->company_id;
+                $movements = StockMovement::where('company_id', $companyId)
+                    ->where('demande_id', $examRequest->id)
+                    ->where('type_mouvement', 'Sortie')
+                    ->lockForUpdate()
+                    ->get();
+                foreach ($movements as $mov) {
+                    $stock = Stock::where('company_id', $companyId)->lockForUpdate()->find($mov->stock_id);
+                    if ($stock) {
+                        $stock->quantite_actuelle += (int) $mov->quantite;
+                        $stock->save();
+                    }
+                }
+                // Optionnel: marquer ces mouvements comme annulés (soft delete)
+                StockMovement::whereIn('id', $movements->pluck('id'))->delete();
+            });
         }
         $examRequest->update(['statut_demande' => 'Annulée']);
         $examRequest->delete();
