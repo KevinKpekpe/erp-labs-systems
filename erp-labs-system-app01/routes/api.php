@@ -21,6 +21,7 @@ use App\Http\Controllers\Api\Compagnies\Exams\ExamRequestController;
 use App\Http\Controllers\Api\Compagnies\Billing\PaymentController;
 use App\Http\Controllers\Api\Compagnies\Billing\InvoiceController;
 use App\Http\Controllers\Api\Compagnies\Stock\AlertController as StockAlertController;
+use App\Http\Controllers\Api\Compagnies\DashboardController;
 
 // SuperAdmin Auth
 Route::prefix('v1/superadmin')->group(function () {
@@ -74,6 +75,20 @@ Route::prefix('v1')->group(function () {
         Route::post('/auth/profile', [AdminAuthController::class, 'updateProfile']);
         Route::post('/company', [UserCompanyController::class, 'updateMyCompany'])
             ->middleware('can.permission:UPDATE,COMPANY');
+
+        // Dashboard endpoints
+        Route::prefix('dashboard')->group(function () {
+            Route::get('/metrics', [DashboardController::class, 'metrics'])
+                ->middleware('can.permission:LIST,EXAMEN');
+            Route::get('/exams-monthly', [DashboardController::class, 'examsMonthly'])
+                ->middleware('can.permission:LIST,EXAMEN');
+            Route::get('/demographics', [DashboardController::class, 'demographics'])
+                ->middleware('can.permission:LIST,PATIENT');
+            Route::get('/distribution', [DashboardController::class, 'distribution'])
+                ->middleware('can.permission:LIST,EXAMEN');
+            Route::get('/recent-requests', [DashboardController::class, 'recentRequests'])
+                ->middleware('can.permission:LIST,DEMANDE_EXAMEN');
+        });
 
         // Company Roles (permissions attached)
         Route::get('/roles', [CompanyRoleController::class, 'index'])->middleware('can.permission:LIST,ROLE');
@@ -142,14 +157,14 @@ Route::prefix('v1')->group(function () {
         Route::delete('/patients/types/{id}/force', [PatientTypeController::class, 'forceDelete'])->middleware('can.permission:DELETE,PATIENT');
 
         // Doctors
-        Route::get('/doctors', [DoctorController::class, 'index'])->middleware('can.permission:LIST,DOCTOR');
-        Route::post('/doctors', [DoctorController::class, 'store'])->middleware('can.permission:CREATE,DOCTOR');
-        Route::get('/doctors/{doctor}', [DoctorController::class, 'show'])->middleware('can.permission:LIST,DOCTOR');
-        Route::put('/doctors/{doctor}', [DoctorController::class, 'update'])->middleware('can.permission:UPDATE,DOCTOR');
-        Route::delete('/doctors/{doctor}', [DoctorController::class, 'destroy'])->middleware('can.permission:DELETE,DOCTOR');
-        Route::get('/doctors-trashed', [DoctorController::class, 'trashed'])->middleware('can.permission:LIST,DOCTOR');
-        Route::post('/doctors/{id}/restore', [DoctorController::class, 'restore'])->middleware('can.permission:UPDATE,DOCTOR');
-        Route::delete('/doctors/{id}/force', [DoctorController::class, 'forceDelete'])->middleware('can.permission:DELETE,DOCTOR');
+        Route::get('/doctors', [DoctorController::class, 'index'])->middleware('can.permission:LIST,MEDECIN');
+        Route::post('/doctors', [DoctorController::class, 'store'])->middleware('can.permission:CREATE,MEDECIN');
+        Route::get('/doctors/{doctor}', [DoctorController::class, 'show'])->middleware('can.permission:LIST,MEDECIN');
+        Route::put('/doctors/{doctor}', [DoctorController::class, 'update'])->middleware('can.permission:UPDATE,MEDECIN');
+        Route::delete('/doctors/{doctor}', [DoctorController::class, 'destroy'])->middleware('can.permission:DELETE,MEDECIN');
+        Route::get('/doctors-trashed', [DoctorController::class, 'trashed'])->middleware('can.permission:LIST,MEDECIN');
+        Route::post('/doctors/{id}/restore', [DoctorController::class, 'restore'])->middleware('can.permission:UPDATE,MEDECIN');
+        Route::delete('/doctors/{id}/force', [DoctorController::class, 'forceDelete'])->middleware('can.permission:DELETE,MEDECIN');
 
         // Patients
         Route::get('/patients', [PatientController::class, 'index'])->middleware('can.permission:LIST,PATIENT');
@@ -172,25 +187,25 @@ Route::prefix('v1')->group(function () {
         Route::delete('/exams/{id}/force', [ExamController::class, 'forceDelete'])->middleware('can.permission:DELETE,EXAMEN');
 
         // Exam Requests
-        Route::get('/exam-requests', [ExamRequestController::class, 'index'])->middleware('can.permission:LIST,DEMANDE');
-        Route::post('/exam-requests', [ExamRequestController::class, 'store'])->middleware('can.permission:CREATE,DEMANDE');
-        Route::get('/exam-requests/{examRequest}', [ExamRequestController::class, 'show'])->middleware('can.permission:LIST,DEMANDE');
-        Route::put('/exam-requests/{examRequest}', [ExamRequestController::class, 'update'])->middleware('can.permission:UPDATE,DEMANDE');
-        Route::delete('/exam-requests/{examRequest}', [ExamRequestController::class, 'destroy'])->middleware('can.permission:DELETE,DEMANDE');
-        Route::get('/patients/{patient}/exam-requests', [ExamRequestController::class, 'byPatient'])->middleware('can.permission:LIST,DEMANDE');
-        Route::get('/doctors/{doctor}/exam-requests', [ExamRequestController::class, 'byDoctor'])->middleware('can.permission:LIST,DEMANDE');
+        Route::get('/exam-requests', [ExamRequestController::class, 'index'])->middleware('can.permission:LIST,DEMANDE_EXAMEN');
+        Route::post('/exam-requests', [ExamRequestController::class, 'store'])->middleware('can.permission:CREATE,DEMANDE_EXAMEN');
+        Route::get('/exam-requests/{examRequest}', [ExamRequestController::class, 'show'])->middleware('can.permission:LIST,DEMANDE_EXAMEN');
+        Route::put('/exam-requests/{examRequest}', [ExamRequestController::class, 'update'])->middleware('can.permission:UPDATE,DEMANDE_EXAMEN');
+        Route::delete('/exam-requests/{examRequest}', [ExamRequestController::class, 'destroy'])->middleware('can.permission:DELETE,DEMANDE_EXAMEN');
+        Route::get('/patients/{patient}/exam-requests', [ExamRequestController::class, 'byPatient'])->middleware('can.permission:LIST,DEMANDE_EXAMEN');
+        Route::get('/doctors/{doctor}/exam-requests', [ExamRequestController::class, 'byDoctor'])->middleware('can.permission:LIST,DEMANDE_EXAMEN');
 
         // Payments
-        Route::get('/payments', [PaymentController::class, 'index'])->middleware('can.permission:LIST,PAYMENT');
-        Route::post('/payments', [PaymentController::class, 'store'])->middleware('can.permission:CREATE,PAYMENT');
-        Route::get('/payments/{payment}', [PaymentController::class, 'show'])->middleware('can.permission:LIST,PAYMENT');
-        Route::delete('/payments/{payment}', [PaymentController::class, 'destroy'])->middleware('can.permission:DELETE,PAYMENT');
-        Route::get('/patients/{patient}/payments', [PaymentController::class, 'byPatient'])->middleware('can.permission:LIST,PAYMENT');
+        Route::get('/payments', [PaymentController::class, 'index'])->middleware('can.permission:LIST,PAIEMENT');
+        Route::post('/payments', [PaymentController::class, 'store'])->middleware('can.permission:CREATE,PAIEMENT');
+        Route::get('/payments/{payment}', [PaymentController::class, 'show'])->middleware('can.permission:LIST,PAIEMENT');
+        Route::delete('/payments/{payment}', [PaymentController::class, 'destroy'])->middleware('can.permission:DELETE,PAIEMENT');
+        Route::get('/patients/{patient}/payments', [PaymentController::class, 'byPatient'])->middleware('can.permission:LIST,PAIEMENT');
 
         // Invoices
-        Route::get('/invoices', [InvoiceController::class, 'index'])->middleware('can.permission:LIST,INVOICE');
-        Route::get('/invoices/{invoice}', [InvoiceController::class, 'show'])->middleware('can.permission:LIST,INVOICE');
-        Route::delete('/invoices/{invoice}', [InvoiceController::class, 'destroy'])->middleware('can.permission:DELETE,INVOICE');
-        Route::get('/patients/{patient}/invoices', [InvoiceController::class, 'byPatient'])->middleware('can.permission:LIST,INVOICE');
+        Route::get('/invoices', [InvoiceController::class, 'index'])->middleware('can.permission:LIST,FACTURE');
+        Route::get('/invoices/{invoice}', [InvoiceController::class, 'show'])->middleware('can.permission:LIST,FACTURE');
+        Route::delete('/invoices/{invoice}', [InvoiceController::class, 'destroy'])->middleware('can.permission:DELETE,FACTURE');
+        Route::get('/patients/{patient}/invoices', [InvoiceController::class, 'byPatient'])->middleware('can.permission:LIST,FACTURE');
     });
 });

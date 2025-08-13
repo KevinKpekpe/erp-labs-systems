@@ -1,27 +1,39 @@
-import {
-  ArrowDownIcon,
-  ArrowUpIcon,
-  GroupIcon,
-  TestTubeIcon,
-} from "../../icons";
+import { useEffect, useState } from "react";
+import { ArrowDownIcon, ArrowUpIcon, GroupIcon, TestTubeIcon } from "../../icons";
 import Badge from "../ui/badge/Badge";
+import { apiFetch } from "../../lib/apiClient";
 
 export default function LaboratoryMetrics() {
+  const [data, setData] = useState<{patients_today:number;exams_in_progress:number;exams_completed:number;stock_alerts_count:number} | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const res = await apiFetch<any>("/v1/dashboard/metrics", { method: "GET" }, "company");
+        if (mounted) setData(res.data);
+      } catch {
+        // silent
+      }
+    })();
+    return () => { mounted = false; };
+  }, []);
+
+  const skeleton = (
+    <div className="h-6 w-16 bg-gray-200 rounded dark:bg-gray-800 animate-pulse" />
+  );
+
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:gap-6">
-      {/* <!-- Metric Item Start - Patients du jour --> */}
       <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] md:p-6">
         <div className="flex items-center justify-center w-12 h-12 bg-blue-100 rounded-xl dark:bg-blue-900/20">
           <GroupIcon className="text-blue-600 size-6 dark:text-blue-400" />
         </div>
-
         <div className="flex items-end justify-between mt-5">
           <div>
-            <span className="text-sm text-gray-500 dark:text-gray-400">
-              Patients du jour
-            </span>
+            <span className="text-sm text-gray-500 dark:text-gray-400">Patients du jour</span>
             <h4 className="mt-2 font-bold text-gray-800 text-title-sm dark:text-white/90">
-              47
+              {data ? data.patients_today : skeleton}
             </h4>
           </div>
           <Badge color="success">
@@ -30,32 +42,25 @@ export default function LaboratoryMetrics() {
           </Badge>
         </div>
       </div>
-      {/* <!-- Metric Item End --> */}
 
-      {/* <!-- Metric Item Start - Examens en cours --> */}
       <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] md:p-6">
         <div className="flex items-center justify-center w-12 h-12 bg-green-100 rounded-xl dark:bg-green-900/20">
           <TestTubeIcon className="text-green-600 size-6 dark:text-green-400" />
         </div>
         <div className="flex items-end justify-between mt-5">
           <div>
-            <span className="text-sm text-gray-500 dark:text-gray-400">
-              Examens en cours
-            </span>
+            <span className="text-sm text-gray-500 dark:text-gray-400">Examens en cours</span>
             <h4 className="mt-2 font-bold text-gray-800 text-title-sm dark:text-white/90">
-              23
+              {data ? data.exams_in_progress : skeleton}
             </h4>
           </div>
-
           <Badge color="warning">
             <ArrowDownIcon />
             8.2%
           </Badge>
         </div>
       </div>
-      {/* <!-- Metric Item End --> */}
 
-      {/* <!-- Metric Item Start - Examens terminés --> */}
       <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] md:p-6">
         <div className="flex items-center justify-center w-12 h-12 bg-purple-100 rounded-xl dark:bg-purple-900/20">
           <svg className="text-purple-600 size-6 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -64,23 +69,18 @@ export default function LaboratoryMetrics() {
         </div>
         <div className="flex items-end justify-between mt-5">
           <div>
-            <span className="text-sm text-gray-500 dark:text-gray-400">
-              Examens terminés
-            </span>
+            <span className="text-sm text-gray-500 dark:text-gray-400">Examens terminés</span>
             <h4 className="mt-2 font-bold text-gray-800 text-title-sm dark:text-white/90">
-              156
+              {data ? data.exams_completed : skeleton}
             </h4>
           </div>
-
           <Badge color="success">
             <ArrowUpIcon />
             15.3%
           </Badge>
         </div>
       </div>
-      {/* <!-- Metric Item End --> */}
 
-      {/* <!-- Metric Item Start - Alertes stock --> */}
       <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] md:p-6">
         <div className="flex items-center justify-center w-12 h-12 bg-red-100 rounded-xl dark:bg-red-900/20">
           <svg className="text-red-600 size-6 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -89,21 +89,17 @@ export default function LaboratoryMetrics() {
         </div>
         <div className="flex items-end justify-between mt-5">
           <div>
-            <span className="text-sm text-gray-500 dark:text-gray-400">
-              Alertes stock
-            </span>
+            <span className="text-sm text-gray-500 dark:text-gray-400">Alertes stock</span>
             <h4 className="mt-2 font-bold text-gray-800 text-title-sm dark:text-white/90">
-              3
+              {data ? data.stock_alerts_count : skeleton}
             </h4>
           </div>
-
           <Badge color="error">
             <ArrowUpIcon />
             2
           </Badge>
         </div>
       </div>
-      {/* <!-- Metric Item End --> */}
     </div>
   );
 } 
