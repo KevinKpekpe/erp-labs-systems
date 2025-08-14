@@ -105,7 +105,7 @@ export default function EditPatient() {
     if (!validateForm()) return;
     try {
       await apiFetch(`/v1/patients/${id}`, { method: "PUT", body: JSON.stringify(formData) }, "company");
-      navigate("/patients");
+      navigate("/patients", { state: { success: "Patient modifié avec succès." } });
     } catch {
       // noop
     }

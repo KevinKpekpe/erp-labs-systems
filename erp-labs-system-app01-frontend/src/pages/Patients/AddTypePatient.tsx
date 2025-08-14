@@ -32,7 +32,7 @@ export default function AddTypePatient() {
     setIsSubmitting(true);
     try {
       await apiFetch("/v1/patients/types", { method: "POST", body: JSON.stringify(formData) }, "company");
-      navigate("/types-patients");
+      navigate("/types-patients", { state: { success: "Type de patient créé avec succès." } });
     } catch {
       // noop
     } finally {

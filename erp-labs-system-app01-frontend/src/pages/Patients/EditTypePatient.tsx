@@ -21,7 +21,7 @@ export default function EditTypePatient() {
     (async () => {
       try {
         const res = await apiFetch<{ data: FormData }>(`/v1/patients/types/${id}`, { method: "GET" }, "company");
-        if (mounted) setFormData((res.data as unknown as FormData) ?? formData);
+        if (mounted) setFormData(((res.data as unknown) as FormData) || { nom_type: "", description: "" });
       } catch {
         // noop
       }
@@ -48,7 +48,7 @@ export default function EditTypePatient() {
     setIsSubmitting(true);
     try {
       await apiFetch(`/v1/patients/types/${id}`, { method: "PUT", body: JSON.stringify(formData) }, "company");
-      navigate("/types-patients");
+      navigate("/types-patients", { state: { success: "Type de patient modifié avec succès." } });
     } catch {
       // noop
     } finally {

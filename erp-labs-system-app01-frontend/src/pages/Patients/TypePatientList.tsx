@@ -1,9 +1,10 @@
-import React, { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Helmet } from "react-helmet-async";
 import { UserIcon, PlusIcon, UserCircleIcon, PencilIcon, TrashBinIcon, CheckLineIcon } from "../../icons";
 import Input from "../../components/form/input/InputField";
 import Modal from "../../components/ui/Modal";
-import { Link } from "react-router";
+import Alert from "../../components/ui/alert/Alert";
+import { Link, useLocation, useNavigate } from "react-router";
 import { apiFetch } from "../../lib/apiClient";
 
 interface TypePatient {
@@ -13,12 +14,58 @@ interface TypePatient {
   description?: string | null;
 }
 
+function isObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+function isTypePatientDTO(value: unknown): value is { id: number; nom_type: string; code?: string; description?: string | null } {
+  return (
+    isObject(value) &&
+    typeof (value as Record<string, unknown>).id === "number" &&
+    typeof (value as Record<string, unknown>).nom_type === "string"
+  );
+}
+function extractTypePatientList(resp: unknown): TypePatient[] {
+  const root = (resp as { data?: unknown })?.data ?? resp;
+  if (Array.isArray(root) && root.every(isTypePatientDTO)) {
+    return (root as Array<{ id: number; nom_type: string; code?: string; description?: string | null }>).map((t) => ({
+      id: t.id,
+      nom_type: t.nom_type,
+      code: String(t.code ?? ""),
+      description: t.description ?? null,
+    }));
+  }
+  if (isObject(root) && Array.isArray((root as { data?: unknown }).data)) {
+    const arr = (root as { data: unknown }).data as unknown[];
+    const filtered = arr.filter(isTypePatientDTO) as Array<{ id: number; nom_type: string; code?: string; description?: string | null }>;
+    return filtered.map((t) => ({ id: t.id, nom_type: t.nom_type, code: String(t.code ?? ""), description: t.description ?? null }));
+  }
+  return [];
+}
+
 export default function TypePatientList() {
   const [items, setItems] = useState<TypePatient[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [showTrashed, setShowTrashed] = useState<boolean>(false);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean; typePatient: TypePatient | null; hard?: boolean }>({ isOpen: false, typePatient: null, hard: false });
+
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const state = (location.state as { success?: string } | null) || null;
+    if (state?.success) {
+      setSuccessMessage(state.success);
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [location.state, location.pathname, navigate]);
+
+  useEffect(() => {
+    if (!successMessage) return;
+    const t = setTimeout(() => setSuccessMessage(null), 5000);
+    return () => clearTimeout(t);
+  }, [successMessage]);
 
   useEffect(() => {
     let mounted = true;
@@ -27,15 +74,15 @@ export default function TypePatientList() {
       try {
         if (showTrashed) {
           const res = await apiFetch<unknown>("/v1/patients/types-trashed", { method: "GET" }, "company");
-          const root = (res as { data?: unknown })?.data ?? res;
-          const list = Array.isArray(root) ? (root as TypePatient[]) : (Array.isArray((root as any)?.data) ? (root as any).data as TypePatient[] : []);
+          const list = extractTypePatientList(res);
           if (mounted) setItems(list);
         } else {
-          const res = await apiFetch<{ data: { data: TypePatient[] } }>("/v1/patients/types?per_page=100", { method: "GET" }, "company");
-          const list = (res.data as any)?.data ?? [];
+          const res = await apiFetch<unknown>("/v1/patients/types?per_page=100", { method: "GET" }, "company");
+          const list = extractTypePatientList(res);
           if (mounted) setItems(list);
         }
       } catch {
+        /* noop */
       } finally {
         if (mounted) setLoading(false);
       }
@@ -56,11 +103,15 @@ export default function TypePatientList() {
     try {
       if (showTrashed && deleteModal.hard) {
         await apiFetch(`/v1/patients/types/${deleteModal.typePatient.id}/force`, { method: "DELETE" }, "company");
+        setSuccessMessage("Type de patient supprimé définitivement avec succès.");
       } else {
         await apiFetch(`/v1/patients/types/${deleteModal.typePatient.id}`, { method: "DELETE" }, "company");
+        setSuccessMessage("Type de patient supprimé avec succès.");
       }
       setItems(prev => prev.filter(i => i.id !== deleteModal.typePatient!.id));
-    } catch {}
+    } catch {
+      /* noop */
+    }
     handleCloseDeleteModal();
   };
 
@@ -68,7 +119,10 @@ export default function TypePatientList() {
     try {
       await apiFetch(`/v1/patients/types/${typePatient.id}/restore`, { method: "POST" }, "company");
       setItems(prev => prev.filter(i => i.id !== typePatient.id));
-    } catch {}
+      setSuccessMessage("Type de patient restauré avec succès.");
+    } catch {
+      /* noop */
+    }
   };
 
   return (
@@ -93,6 +147,12 @@ export default function TypePatientList() {
             )}
           </div>
         </div>
+
+        {successMessage && (
+          <div className="mb-6">
+            <Alert variant="success" title="Succès" message={successMessage} />
+          </div>
+        )}
 
         <div className="mb-6">
           <div className="relative">

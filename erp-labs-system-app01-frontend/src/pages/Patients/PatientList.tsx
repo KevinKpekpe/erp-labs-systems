@@ -4,7 +4,8 @@ import { UserIcon, PlusIcon, UserCircleIcon, PencilIcon, TrashBinIcon, CheckLine
 import Input from "../../components/form/input/InputField";
 import Badge from "../../components/ui/badge/Badge";
 import Modal from "../../components/ui/Modal";
-import { Link } from "react-router";
+import Alert from "../../components/ui/alert/Alert";
+import { Link, useLocation, useNavigate } from "react-router";
 import { apiFetch } from "../../lib/apiClient";
 
 interface Patient {
@@ -26,7 +27,11 @@ export default function PatientList() {
   const [loading, setLoading] = useState<boolean>(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [showTrashed, setShowTrashed] = useState<boolean>(false);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean; patient: Patient | null; hard?: boolean }>({ isOpen: false, patient: null, hard: false });
+
+  const location = useLocation();
+  const navigate = useNavigate();
 
   const load = useMemo(() => async (trashed: boolean) => {
     setLoading(true);
@@ -44,6 +49,20 @@ export default function PatientList() {
       setLoading(false);
     }
   }, []);
+
+  useEffect(() => {
+    const state = (location.state as { success?: string } | null) || null;
+    if (state?.success) {
+      setSuccessMessage(state.success);
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [location.state, location.pathname, navigate]);
+
+  useEffect(() => {
+    if (!successMessage) return;
+    const t = setTimeout(() => setSuccessMessage(null), 5000);
+    return () => clearTimeout(t);
+  }, [successMessage]);
 
   useEffect(() => {
     load(showTrashed);
@@ -81,8 +100,10 @@ export default function PatientList() {
     try {
       if (showTrashed && deleteModal.hard) {
         await apiFetch(`/v1/patients/${deleteModal.patient.id}/force`, { method: "DELETE" }, "company");
+        setSuccessMessage("Patient supprimé définitivement avec succès.");
       } else {
         await apiFetch(`/v1/patients/${deleteModal.patient.id}`, { method: "DELETE" }, "company");
+        setSuccessMessage("Patient supprimé avec succès.");
       }
       setItems((prev) => prev.filter((p) => p.id !== deleteModal.patient!.id));
     } catch {}
@@ -92,7 +113,8 @@ export default function PatientList() {
   const restore = async (patient: Patient) => {
     try {
       await apiFetch(`/v1/patients/${patient.id}/restore`, { method: "POST" }, "company");
-      setItems((prev) => prev.filter((p) => p.id !== patient.id));
+    setItems((prev) => prev.filter((p) => p.id !== patient.id));
+      setSuccessMessage("Patient restauré avec succès.");
     } catch {}
   };
 
@@ -118,6 +140,12 @@ export default function PatientList() {
             )}
           </div>
         </div>
+
+        {successMessage && (
+          <div className="mb-6">
+            <Alert variant="success" title="Succès" message={successMessage} />
+          </div>
+        )}
 
         <div className="mb-6">
           <div className="relative">

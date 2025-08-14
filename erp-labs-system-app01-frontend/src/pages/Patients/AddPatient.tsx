@@ -9,10 +9,19 @@ import { Link, useNavigate } from "react-router";
 import { apiFetch } from "../../lib/apiClient";
 
 interface TypePatient { id: number; nom_type: string }
+function isObject(value: unknown): value is Record<string, unknown> { return typeof value === 'object' && value !== null; }
+function isTypePatientDTO(v: unknown): v is { id: number; nom_type: string } { return isObject(v) && typeof v.id === 'number' && typeof v.nom_type === 'string'; }
 function extractTypes(resp: unknown): TypePatient[] {
   const root = (resp as { data?: unknown })?.data ?? resp;
-  if (Array.isArray(root)) return root as TypePatient[];
-  if (root && typeof root === 'object' && Array.isArray((root as any).data)) return (root as any).data as TypePatient[];
+  if (Array.isArray(root) && root.every(isTypePatientDTO)) {
+    return root as TypePatient[];
+  }
+  if (isObject(root)) {
+    const data = (root as Record<string, unknown>).data as unknown;
+    if (Array.isArray(data) && data.every(isTypePatientDTO)) {
+      return data as TypePatient[];
+    }
+  }
   return [];
 }
 
@@ -69,7 +78,7 @@ export default function AddPatient() {
     if (!validateForm()) return;
     try {
       await apiFetch("/v1/patients", { method: "POST", body: JSON.stringify(formData) }, "company");
-      navigate("/patients");
+      navigate("/patients", { state: { success: "Patient créé avec succès." } });
     } catch {
       // noop
     }
