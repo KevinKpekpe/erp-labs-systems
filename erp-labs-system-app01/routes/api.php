@@ -21,6 +21,7 @@ use App\Http\Controllers\Api\Compagnies\Exams\ExamRequestController;
 use App\Http\Controllers\Api\Compagnies\Billing\PaymentController;
 use App\Http\Controllers\Api\Compagnies\Billing\InvoiceController;
 use App\Http\Controllers\Api\Compagnies\Stock\AlertController as StockAlertController;
+use App\Http\Controllers\Api\Compagnies\Stock\StockDashboardController;
 use App\Http\Controllers\Api\Compagnies\DashboardController;
 
 // SuperAdmin Auth
@@ -145,6 +146,13 @@ Route::prefix('v1')->group(function () {
 
         // Stock - Alerts
         Route::get('/stock/alerts', [StockAlertController::class, 'index'])->middleware('can.permission:LIST,STOCK');
+
+        // Stock - Dashboard
+        Route::prefix('stock/dashboard')->middleware('can.permission:LIST,STOCK')->group(function () {
+            Route::get('/metrics', [StockDashboardController::class, 'metrics']);
+            Route::get('/critical', [StockDashboardController::class, 'critical']);
+            Route::get('/movements-recent', [StockDashboardController::class, 'movementsRecent']);
+        });
 
         // Patients - Types
         Route::get('/patients/types', [PatientTypeController::class, 'index'])->middleware('can.permission:LIST,PATIENT');

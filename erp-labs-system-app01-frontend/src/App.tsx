@@ -32,6 +32,8 @@ import AddMedecin from "./pages/Medecins/AddMedecin";
 import EditMedecin from "./pages/Medecins/EditMedecin";
 import MedecinDetails from "./pages/Medecins/MedecinDetails";
 import StocksDashboard from "./pages/Stocks/StocksDashboard";
+import { CategoryArticleList, CategoryArticleCreate, CategoryArticleEdit } from "./pages/Stocks/categoryArticle";
+import { ArticleList, ArticleCreate, ArticleEdit } from "./pages/Stocks/articles";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 import SuperAdminHome from "./pages/SuperAdmin/Home";
@@ -94,6 +96,12 @@ export default function App() {
 
               {/* Gestion des Stocks */}
               <Route path="/stocks" element={<ProtectedRoute kind="company" requiredPermission={{ action: "LIST", module: "STOCK" }}><StocksDashboard /></ProtectedRoute>} />
+              <Route path="/stocks/categories" element={<ProtectedRoute kind="company" requiredPermission={{ action: "LIST", module: "STOCK" }}><CategoryArticleList /></ProtectedRoute>} />
+              <Route path="/stocks/categories/nouveau" element={<ProtectedRoute kind="company" requiredPermission={{ action: "CREATE", module: "STOCK" }}><CategoryArticleCreate /></ProtectedRoute>} />
+              <Route path="/stocks/categories/:id/modifier" element={<ProtectedRoute kind="company" requiredPermission={{ action: "UPDATE", module: "STOCK" }}><CategoryArticleEdit /></ProtectedRoute>} />
+              <Route path="/stocks/articles" element={<ProtectedRoute kind="company" requiredPermission={{ action: "LIST", module: "STOCK" }}><ArticleList /></ProtectedRoute>} />
+              <Route path="/stocks/articles/nouveau" element={<ProtectedRoute kind="company" requiredPermission={{ action: "CREATE", module: "STOCK" }}><ArticleCreate /></ProtectedRoute>} />
+              <Route path="/stocks/articles/:id/modifier" element={<ProtectedRoute kind="company" requiredPermission={{ action: "UPDATE", module: "STOCK" }}><ArticleEdit /></ProtectedRoute>} />
 
               {/* Profile & Administration */}
               <Route path="/profile" element={<UserProfiles />} />

@@ -10,7 +10,12 @@ type Patient = { id: number; code: string; nom: string; postnom?: string | null;
 
 function isObject(value: unknown): value is Record<string, unknown> { return typeof value === "object" && value !== null; }
 function extractPatient(resp: unknown): Patient | null { const root = (resp as { data?: unknown })?.data ?? resp; return isObject(root) ? (root as Patient) : null; }
-function extractDemandes(resp: unknown): DemandeExamen[] { const root = (resp as { data?: unknown })?.data ?? resp; return Array.isArray(root) ? (root as DemandeExamen[]) : []; }
+function extractDemandes(resp: unknown): DemandeExamen[] {
+  const root = (resp as { data?: unknown })?.data ?? resp;
+  if (Array.isArray(root)) return root as DemandeExamen[];
+  if (isObject(root) && Array.isArray((root as Record<string, unknown>).data)) return (root as Record<string, unknown>).data as DemandeExamen[];
+  return [];
+}
 
 export default function PatientDetails() {
   const { id } = useParams<{ id: string }>();
@@ -24,7 +29,7 @@ export default function PatientDetails() {
       try {
         const [pRes, dRes] = await Promise.all([
           apiFetch<unknown>(`/v1/patients/${id}`, { method: "GET" }, "company"),
-          apiFetch<unknown>(`/v1/patients/${id}/exam-requests`, { method: "GET" }, "company"),
+          apiFetch<unknown>(`/v1/patients/${id}/exam-requests?per_page=50`, { method: "GET" }, "company"),
         ]);
         if (mounted) setPatient(extractPatient(pRes));
         if (mounted) setDemandes(extractDemandes(dRes));

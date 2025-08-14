@@ -1,18 +1,19 @@
-import React, { useState } from "react";
+import { useEffect, useState } from "react";
 import { Helmet } from "react-helmet-async";
-import { 
-  BoxIcon, 
-  StockAlertIcon, 
-  StockWarningIcon, 
+import {
+  BoxIcon,
+  StockAlertIcon,
+  StockWarningIcon,
   StockValueIcon,
-  ArrowUpIcon, 
+  ArrowUpIcon,
   ArrowDownIcon,
-  PlusIcon
+  PlusIcon,
+  UserIcon,
 } from "../../icons";
 import Badge from "../../components/ui/badge/Badge";
 import { Link } from "react-router";
+import { apiFetch } from "../../lib/apiClient";
 
-// Interfaces basées sur la structure de la base de données
 interface StockStats {
   totalArticles: number;
   articlesEnRupture: number;
@@ -22,121 +23,121 @@ interface StockStats {
 }
 
 interface ArticleCritique {
-  article_id: number;
+  id: number;
   code: string;
   nom_article: string;
   quantite_actuelle: number;
   seuil_critique: number;
-  categorie: string;
+  categorie?: string | null;
 }
 
 interface MouvementRecent {
-  mouvement_id: number;
+  id: number;
   code: string;
   nom_article: string;
-  type_mouvement: 'Entrée' | 'Sortie';
+  type_mouvement: "Entrée" | "Sortie" | string;
   quantite: number;
   date_mouvement: string;
-  motif: string;
+  motif?: string | null;
 }
 
-// Données de test
-const mockStats: StockStats = {
-  totalArticles: 156,
-  articlesEnRupture: 8,
-  articlesCritiques: 12,
-  valeurTotale: 2450000,
-  mouvementsAujourdhui: 23
-};
+function isObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
 
-const mockArticlesCritiques: ArticleCritique[] = [
-  {
-    article_id: 1,
-    code: "ART001",
-    nom_article: "Réactif A",
-    quantite_actuelle: 5,
-    seuil_critique: 10,
-    categorie: "Réactifs"
-  },
-  {
-    article_id: 2,
-    code: "ART002",
-    nom_article: "Consommable B",
-    quantite_actuelle: 2,
-    seuil_critique: 15,
-    categorie: "Consommables"
-  },
-  {
-    article_id: 3,
-    code: "ART003",
-    nom_article: "Produit de nettoyage C",
-    quantite_actuelle: 8,
-    seuil_critique: 20,
-    categorie: "Nettoyage"
-  }
-];
+function extractMetrics(resp: unknown): StockStats | null {
+  const root = (resp as { data?: unknown })?.data ?? resp;
+  if (!isObject(root)) return null;
+  return {
+    totalArticles: Number(root.totalArticles ?? 0),
+    articlesEnRupture: Number(root.articlesEnRupture ?? 0),
+    articlesCritiques: Number(root.articlesCritiques ?? 0),
+    valeurTotale: Number(root.valeurTotale ?? 0),
+    mouvementsAujourdhui: Number(root.mouvementsAujourdhui ?? 0),
+  };
+}
 
-const mockMouvementsRecents: MouvementRecent[] = [
-  {
-    mouvement_id: 1,
-    code: "MVT001",
-    nom_article: "Réactif A",
-    type_mouvement: "Sortie",
-    quantite: 5,
-    date_mouvement: "2024-01-15 14:30:00",
-    motif: "Utilisation pour examen"
-  },
-  {
-    mouvement_id: 2,
-    code: "MVT002",
-    nom_article: "Consommable B",
-    type_mouvement: "Entrée",
-    quantite: 50,
-    date_mouvement: "2024-01-15 10:15:00",
-    motif: "Réception livraison"
-  },
-  {
-    mouvement_id: 3,
-    code: "MVT003",
-    nom_article: "Produit de nettoyage C",
-    type_mouvement: "Sortie",
-    quantite: 2,
-    date_mouvement: "2024-01-15 09:45:00",
-    motif: "Nettoyage laboratoire"
-  }
-];
+function extractArray<T>(resp: unknown, mapItem: (raw: Record<string, unknown>) => T): T[] {
+  const root = (resp as { data?: unknown })?.data ?? resp;
+  const data = isObject(root) && Array.isArray(root.data) ? (root.data as unknown[]) : Array.isArray(root) ? (root as unknown[]) : [];
+  return data.filter(isObject).map((raw) => mapItem(raw as Record<string, unknown>));
+}
 
 export default function StocksDashboard() {
-  const [stats] = useState<StockStats>(mockStats);
-  const [articlesCritiques] = useState<ArticleCritique[]>(mockArticlesCritiques);
-  const [mouvementsRecents] = useState<MouvementRecent[]>(mockMouvementsRecents);
+  const [stats, setStats] = useState<StockStats | null>(null);
+  const [articlesCritiques, setArticlesCritiques] = useState<ArticleCritique[]>([]);
+  const [mouvementsRecents, setMouvementsRecents] = useState<MouvementRecent[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const [metricsRes, criticalRes, movesRes] = await Promise.all([
+          apiFetch<unknown>("/v1/stock/dashboard/metrics", { method: "GET" }, "company"),
+          apiFetch<unknown>("/v1/stock/dashboard/critical?per_page=5", { method: "GET" }, "company"),
+          apiFetch<unknown>("/v1/stock/dashboard/movements-recent?per_page=5", { method: "GET" }, "company"),
+        ]);
+
+        if (!mounted) return;
+
+        setStats(extractMetrics(metricsRes));
+
+        setArticlesCritiques(
+          extractArray<ArticleCritique>(criticalRes, (raw) => ({
+            id: Number(raw.id ?? 0),
+            code: String(raw.code ?? ""),
+            nom_article: String((raw.article as Record<string, unknown> | undefined)?.nom_article ?? ""),
+            quantite_actuelle: Number(raw.quantite_actuelle ?? 0),
+            seuil_critique: Number(raw.seuil_critique ?? 0),
+            categorie: String(((raw.article as Record<string, unknown> | undefined)?.categorie as Record<string, unknown> | undefined)?.nom_categorie ?? ((raw.category as Record<string, unknown> | undefined)?.nom_categorie) ?? ""),
+          }))
+        );
+
+        setMouvementsRecents(
+          extractArray<MouvementRecent>(movesRes, (raw) => ({
+            id: Number(raw.id ?? 0),
+            code: String(raw.code ?? ""),
+            nom_article: String(((raw.stock as Record<string, unknown> | undefined)?.article as Record<string, unknown> | undefined)?.nom_article ?? ""),
+            type_mouvement: String(raw.type_mouvement ?? ""),
+            quantite: Number(raw.quantite ?? 0),
+            date_mouvement: String(raw.date_mouvement ?? ""),
+            motif: (raw.motif as string) ?? null,
+          }))
+        );
+      } catch {
+        // noop
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('fr-FR', {
-      style: 'currency',
-      currency: 'CDF'
+    return new Intl.NumberFormat("fr-FR", {
+      style: "currency",
+      currency: "CDF",
     }).format(amount);
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleString('fr-FR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
+    return new Date(dateString).toLocaleString("fr-FR", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
     });
   };
 
-  const getMouvementBadge = (type: 'Entrée' | 'Sortie') => {
-    return type === 'Entrée' ? (
-      <Badge color="success" startIcon={<ArrowUpIcon className="w-3 h-3" />}>
-        Entrée
-      </Badge>
+  const getMouvementBadge = (type: "Entrée" | "Sortie" | string) => {
+    return type === "Entrée" ? (
+      <Badge color="success" startIcon={<ArrowUpIcon className="w-3 h-3" />}>Entrée</Badge>
     ) : (
-      <Badge color="error" startIcon={<ArrowDownIcon className="w-3 h-3" />}>
-        Sortie
-      </Badge>
+      <Badge color="error" startIcon={<ArrowDownIcon className="w-3 h-3" />}>Sortie</Badge>
     );
   };
 
@@ -148,15 +149,11 @@ export default function StocksDashboard() {
 
       <div className="mx-auto max-w-screen-2xl p-4 md:p-6 2xl:p-10">
         <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <h2 className="text-title-md2 font-bold text-black dark:text-white">
-            Tableau de Bord - Stocks
-          </h2>
+          <h2 className="text-title-md2 font-bold text-black dark:text-white">Tableau de Bord - Stocks</h2>
           <nav>
             <ol className="flex items-center gap-2">
               <li>
-                <Link className="font-medium" to="/">
-                  Accueil /
-                </Link>
+                <Link className="font-medium" to="/">Accueil /</Link>
               </li>
               <li className="text-primary">Stocks</li>
             </ol>
@@ -171,9 +168,7 @@ export default function StocksDashboard() {
               <BoxIcon className="h-6 w-6 text-brand-500" />
             </div>
             <div className="mt-4.5">
-              <h4 className="text-title-md font-bold text-gray-800 dark:text-white/90">
-                {stats.totalArticles}
-              </h4>
+              <h4 className="text-title-md font-bold text-gray-800 dark:text-white/90">{loading ? "…" : (stats?.totalArticles ?? 0)}</h4>
               <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Total Articles</p>
             </div>
           </div>
@@ -184,9 +179,7 @@ export default function StocksDashboard() {
               <StockAlertIcon className="h-6 w-6 text-brand-500" />
             </div>
             <div className="mt-4.5">
-              <h4 className="text-title-md font-bold text-gray-800 dark:text-white/90">
-                {stats.articlesEnRupture}
-              </h4>
+              <h4 className="text-title-md font-bold text-gray-800 dark:text-white/90">{loading ? "…" : (stats?.articlesEnRupture ?? 0)}</h4>
               <p className="text-sm font-medium text-gray-500 dark:text-gray-400">En Rupture</p>
             </div>
           </div>
@@ -197,9 +190,7 @@ export default function StocksDashboard() {
               <StockWarningIcon className="h-6 w-6 text-brand-500" />
             </div>
             <div className="mt-4.5">
-              <h4 className="text-title-md font-bold text-gray-800 dark:text-white/90">
-                {stats.articlesCritiques}
-              </h4>
+              <h4 className="text-title-md font-bold text-gray-800 dark:text-white/90">{loading ? "…" : (stats?.articlesCritiques ?? 0)}</h4>
               <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Critiques</p>
             </div>
           </div>
@@ -210,9 +201,7 @@ export default function StocksDashboard() {
               <StockValueIcon className="h-6 w-6 text-brand-500" />
             </div>
             <div className="mt-4.5">
-              <h4 className="text-title-md font-bold text-gray-800 dark:text-white/90">
-                {formatCurrency(stats.valeurTotale)}
-              </h4>
+              <h4 className="text-title-md font-bold text-gray-800 dark:text-white/90">{loading ? "…" : formatCurrency(stats?.valeurTotale ?? 0)}</h4>
               <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Valeur Totale</p>
             </div>
           </div>
@@ -224,13 +213,8 @@ export default function StocksDashboard() {
           <div className="col-span-12 xl:col-span-8">
             <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] md:p-6">
               <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <h3 className="text-xl font-semibold text-gray-800 dark:text-white/90">
-                  Articles en Situation Critique
-                </h3>
-                <Link
-                  to="/stocks/articles"
-                  className="inline-flex items-center justify-center rounded-md bg-brand-500 py-2 px-10 text-center font-medium text-white hover:bg-opacity-90 lg:px-8 xl:px-10"
-                >
+                <h3 className="text-xl font-semibold text-gray-800 dark:text-white/90">Articles en Situation Critique</h3>
+                <Link to="/stocks/articles" className="inline-flex items-center justify-center rounded-md bg-brand-500 py-2 px-10 text-center font-medium text-white hover:bg-opacity-90 lg:px-8 xl:px-10">
                   <PlusIcon className="mr-2 h-4 w-4" />
                   Voir Tous
                 </Link>
@@ -241,52 +225,43 @@ export default function StocksDashboard() {
                   <table className="w-full table-auto">
                     <thead>
                       <tr className="border-b border-gray-100 dark:border-white/[0.05]">
-                        <th className="min-w-[220px] py-4 px-4 font-medium text-gray-500 dark:text-gray-400 text-start xl:pl-11">
-                          Article
-                        </th>
-                        <th className="min-w-[150px] py-4 px-4 font-medium text-gray-500 dark:text-gray-400 text-start">
-                          Catégorie
-                        </th>
-                        <th className="min-w-[120px] py-4 px-4 font-medium text-gray-500 dark:text-gray-400 text-start">
-                          Quantité
-                        </th>
-                        <th className="min-w-[120px] py-4 px-4 font-medium text-gray-500 dark:text-gray-400 text-start">
-                          Seuil
-                        </th>
-                        <th className="py-4 px-4 font-medium text-gray-500 dark:text-gray-400 text-start">
-                          Statut
-                        </th>
+                        <th className="min-w-[220px] py-4 px-4 font-medium text-gray-500 dark:text-gray-400 text-start xl:pl-11">Article</th>
+                        <th className="min-w-[150px] py-4 px-4 font-medium text-gray-500 dark:text-gray-400 text-start">Catégorie</th>
+                        <th className="min-w-[120px] py-4 px-4 font-medium text-gray-500 dark:text-gray-400 text-start">Quantité</th>
+                        <th className="min-w-[120px] py-4 px-4 font-medium text-gray-500 dark:text-gray-400 text-start">Seuil</th>
+                        <th className="py-4 px-4 font-medium text-gray-500 dark:text-gray-400 text-start">Statut</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
-                      {articlesCritiques.map((article) => (
-                        <tr key={article.article_id}>
-                          <td className="py-5 px-4 pl-9 xl:pl-11">
-                            <div className="flex flex-col">
-                              <h5 className="font-medium text-gray-800 dark:text-white/90">
-                                {article.nom_article}
-                              </h5>
-                              <p className="text-sm text-gray-500 dark:text-gray-400">{article.code}</p>
+                      {loading ? (
+                        <tr>
+                          <td className="py-6 px-4" colSpan={5}><div className="h-4 w-32 bg-gray-200 rounded animate-pulse dark:bg-gray-800" /></td>
+                        </tr>
+                      ) : articlesCritiques.length === 0 ? (
+                        <tr>
+                          <td className="py-8 px-4" colSpan={5}>
+                            <div className="text-center">
+                              <UserIcon className="mx-auto h-10 w-10 text-gray-400" />
+                              <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">Aucun article critique</p>
                             </div>
                           </td>
-                          <td className="py-5 px-4">
-                            <p className="text-gray-800 dark:text-white/90">{article.categorie}</p>
-                          </td>
-                          <td className="py-5 px-4">
-                            <p className="text-gray-800 dark:text-white/90">{article.quantite_actuelle}</p>
-                          </td>
-                          <td className="py-5 px-4">
-                            <p className="text-gray-800 dark:text-white/90">{article.seuil_critique}</p>
-                          </td>
-                          <td className="py-5 px-4">
-                            {article.quantite_actuelle === 0 ? (
-                              <Badge color="error">En Rupture</Badge>
-                            ) : (
-                              <Badge color="warning">Critique</Badge>
-                            )}
-                          </td>
                         </tr>
-                      ))}
+                      ) : (
+                        articlesCritiques.map((article) => (
+                          <tr key={article.id}>
+                            <td className="py-5 px-4 pl-9 xl:pl-11">
+                              <div className="flex flex-col">
+                                <h5 className="font-medium text-gray-800 dark:text-white/90">{article.nom_article}</h5>
+                                <p className="text-sm text-gray-500 dark:text-gray-400">{article.code}</p>
+                              </div>
+                            </td>
+                            <td className="py-5 px-4"><p className="text-gray-800 dark:text-white/90">{article.categorie || '-'}</p></td>
+                            <td className="py-5 px-4"><p className="text-gray-800 dark:text-white/90">{article.quantite_actuelle}</p></td>
+                            <td className="py-5 px-4"><p className="text-gray-800 dark:text-white/90">{article.seuil_critique}</p></td>
+                            <td className="py-5 px-4">{article.quantite_actuelle === 0 ? (<Badge color="error">En Rupture</Badge>) : (<Badge color="warning">Critique</Badge>)}</td>
+                          </tr>
+                        ))
+                      )}
                     </tbody>
                   </table>
                 </div>
@@ -298,51 +273,35 @@ export default function StocksDashboard() {
           <div className="col-span-12 xl:col-span-4">
             <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] md:p-6">
               <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <h3 className="text-xl font-semibold text-gray-800 dark:text-white/90">
-                  Mouvements Récents
-                </h3>
-                <Link
-                  to="/stocks/mouvements"
-                  className="inline-flex items-center justify-center rounded-md bg-brand-500 py-2 px-4 text-center font-medium text-white hover:bg-opacity-90"
-                >
-                  Voir Tous
-                </Link>
+                <h3 className="text-xl font-semibold text-gray-800 dark:text-white/90">Mouvements Récents</h3>
+                <Link to="/stocks/mouvements" className="inline-flex items-center justify-center rounded-md bg-brand-500 py-2 px-4 text-center font-medium text-white hover:bg-opacity-90">Voir Tous</Link>
               </div>
 
               <div className="space-y-4">
-                {mouvementsRecents.map((mouvement, index) => (
-                  <div
-                    key={mouvement.mouvement_id}
-                    className={`flex items-center justify-between pb-4 ${
-                      index < mouvementsRecents.length - 1 
-                        ? 'border-b border-gray-100 dark:border-white/[0.05]' 
-                        : ''
-                    }`}
-                  >
-                    <div className="flex items-center space-x-3">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-meta-2 dark:bg-meta-4">
-                        {mouvement.type_mouvement === 'Entrée' ? (
-                          <ArrowUpIcon className="h-5 w-5 text-brand-500" />
-                        ) : (
-                          <ArrowDownIcon className="h-5 w-5 text-brand-500" />
-                        )}
+                {loading ? (
+                  <div className="flex items-center space-x-2"><div className="h-4 w-4 animate-spin rounded-full border-2 border-brand-500 border-t-transparent"></div><span className="text-gray-600 dark:text-gray-400">Chargement...</span></div>
+                ) : mouvementsRecents.length === 0 ? (
+                  <div className="text-center py-8"><UserIcon className="mx-auto h-12 w-12 text-gray-400" /><h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-white">Aucun mouvement</h3><p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Aucun mouvement récent.</p></div>
+                ) : (
+                  mouvementsRecents.map((mouvement, index) => (
+                    <div key={mouvement.id} className={`flex items-center justify-between pb-4 ${index < mouvementsRecents.length - 1 ? 'border-b border-gray-100 dark:border-white/[0.05]' : ''}`}>
+                      <div className="flex items-center space-x-3">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-meta-2 dark:bg-meta-4">
+                          {mouvement.type_mouvement === 'Entrée' ? (<ArrowUpIcon className="h-5 w-5 text-brand-500" />) : (<ArrowDownIcon className="h-5 w-5 text-brand-500" />)}
+                        </div>
+                        <div>
+                          <h5 className="font-medium text-gray-800 dark:text-white/90">{mouvement.nom_article}</h5>
+                          <p className="text-sm text-gray-500 dark:text-gray-400">{mouvement.motif || ''}</p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">{formatDate(mouvement.date_mouvement)}</p>
+                        </div>
                       </div>
-                      <div>
-                        <h5 className="font-medium text-gray-800 dark:text-white/90">
-                          {mouvement.nom_article}
-                        </h5>
-                        <p className="text-sm text-gray-500 dark:text-gray-400">{mouvement.motif}</p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">{formatDate(mouvement.date_mouvement)}</p>
+                      <div className="text-right">
+                        {getMouvementBadge(mouvement.type_mouvement)}
+                        <p className="text-sm font-medium text-gray-800 dark:text-white/90">{mouvement.quantite}</p>
                       </div>
                     </div>
-                    <div className="text-right">
-                      {getMouvementBadge(mouvement.type_mouvement)}
-                      <p className="text-sm font-medium text-gray-800 dark:text-white/90">
-                        {mouvement.quantite}
-                      </p>
-                    </div>
-                  </div>
-                ))}
+                  ))
+                )}
               </div>
             </div>
           </div>
@@ -350,18 +309,11 @@ export default function StocksDashboard() {
 
         {/* Actions rapides */}
         <div className="mt-6 rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] md:p-6">
-          <h3 className="mb-6 text-xl font-semibold text-gray-800 dark:text-white/90">
-            Actions Rapides
-          </h3>
+          <h3 className="mb-6 text-xl font-semibold text-gray-800 dark:text-white/90">Actions Rapides</h3>
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
-            <Link
-              to="/stocks/articles/nouveau"
-              className="flex items-center justify-center rounded-lg border border-gray-200 bg-white py-4 px-6 shadow-default transition-all hover:shadow-1 dark:border-gray-800 dark:bg-white/[0.03] dark:hover:shadow-boxdark"
-            >
+            <Link to="/stocks/articles/nouveau" className="flex items-center justify-center rounded-lg border border-gray-200 bg-white py-4 px-6 shadow-default transition-all hover:shadow-1 dark:border-gray-800 dark:bg-white/[0.03] dark:hover:shadow-boxdark">
               <div className="flex items-center space-x-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-meta-2 dark:bg-meta-4">
-                  <PlusIcon className="h-5 w-5 text-brand-500" />
-                </div>
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-meta-2 dark:bg-meta-4"><PlusIcon className="h-5 w-5 text-brand-500" /></div>
                 <div>
                   <h5 className="font-medium text-gray-800 dark:text-white/90">Nouvel Article</h5>
                   <p className="text-sm text-gray-500 dark:text-gray-400">Ajouter un article</p>
@@ -369,14 +321,9 @@ export default function StocksDashboard() {
               </div>
             </Link>
 
-            <Link
-              to="/stocks/mouvements/nouveau"
-              className="flex items-center justify-center rounded-lg border border-gray-200 bg-white py-4 px-6 shadow-default transition-all hover:shadow-1 dark:border-gray-800 dark:bg-white/[0.03] dark:hover:shadow-boxdark"
-            >
+            <Link to="/stocks/mouvements/nouveau" className="flex items-center justify-center rounded-lg border border-gray-200 bg-white py-4 px-6 shadow-default transition-all hover:shadow-1 dark:border-gray-800 dark:bg-white/[0.03] dark:hover:shadow-boxdark">
               <div className="flex items-center space-x-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-meta-2 dark:bg-meta-4">
-                  <ArrowUpIcon className="h-5 w-5 text-brand-500" />
-                </div>
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-meta-2 dark:bg-meta-4"><ArrowUpIcon className="h-5 w-5 text-brand-500" /></div>
                 <div>
                   <h5 className="font-medium text-gray-800 dark:text-white/90">Mouvement</h5>
                   <p className="text-sm text-gray-500 dark:text-gray-400">Enregistrer un mouvement</p>
@@ -384,14 +331,9 @@ export default function StocksDashboard() {
               </div>
             </Link>
 
-            <Link
-              to="/stocks/categories"
-              className="flex items-center justify-center rounded-lg border border-gray-200 bg-white py-4 px-6 shadow-default transition-all hover:shadow-1 dark:border-gray-800 dark:bg-white/[0.03] dark:hover:shadow-boxdark"
-            >
+            <Link to="/stocks/categories" className="flex items-center justify-center rounded-lg border border-gray-200 bg-white py-4 px-6 shadow-default transition-all hover:shadow-1 dark:border-gray-800 dark:bg-white/[0.03] dark:hover:shadow-boxdark">
               <div className="flex items-center space-x-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-meta-2 dark:bg-meta-4">
-                  <BoxIcon className="h-5 w-5 text-brand-500" />
-                </div>
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-meta-2 dark:bg-meta-4"><BoxIcon className="h-5 w-5 text-brand-500" /></div>
                 <div>
                   <h5 className="font-medium text-gray-800 dark:text-white/90">Catégories</h5>
                   <p className="text-sm text-gray-500 dark:text-gray-400">Gérer les catégories</p>
@@ -399,14 +341,9 @@ export default function StocksDashboard() {
               </div>
             </Link>
 
-            <Link
-              to="/stocks/alertes"
-              className="flex items-center justify-center rounded-lg border border-gray-200 bg-white py-4 px-6 shadow-default transition-all hover:shadow-1 dark:border-gray-800 dark:bg-white/[0.03] dark:hover:shadow-boxdark"
-            >
+            <Link to="/stocks/alertes" className="flex items-center justify-center rounded-lg border border-gray-200 bg-white py-4 px-6 shadow-default transition-all hover:shadow-1 dark:border-gray-800 dark:bg-white/[0.03] dark:hover:shadow-boxdark">
               <div className="flex items-center space-x-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-meta-2 dark:bg-meta-4">
-                  <StockAlertIcon className="h-5 w-5 text-brand-500" />
-                </div>
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-meta-2 dark:bg-meta-4"><StockAlertIcon className="h-5 w-5 text-brand-500" /></div>
                 <div>
                   <h5 className="font-medium text-gray-800 dark:text-white/90">Alertes</h5>
                   <p className="text-sm text-gray-500 dark:text-gray-400">Voir les alertes</p>
