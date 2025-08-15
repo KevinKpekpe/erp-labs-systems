@@ -58,7 +58,10 @@ class StockDashboardController extends Controller
         $perPage = (int) (request('per_page') ?? 10);
 
         $criticals = Stock::where('company_id', $companyId)
-            ->with(['article:id,nom_article,categorie_id'])
+            ->with([
+                'article:id,nom_article,categorie_id',
+                'article.category:id,nom_categorie'
+            ])
             ->whereColumn('quantite_actuelle', '<=', 'seuil_critique')
             ->orderBy('quantite_actuelle', 'asc')
             ->paginate($perPage);

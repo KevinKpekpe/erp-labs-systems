@@ -41,6 +41,7 @@ import MustChangePassword from "./pages/AuthPages/MustChangePassword";
 import UserProfiles from "./pages/UserProfiles";
 import Forbidden from "./pages/OtherPage/Forbidden";
 import ServerError from "./pages/OtherPage/ServerError";
+import { ExamList, ExamCreate, ExamEdit, ExamDetails } from "./pages/Examens";
 
 function CompanyGuard({ children }: { children: React.ReactElement }) {
   const { state } = useAuth();
@@ -93,6 +94,12 @@ export default function App() {
               <Route path="/medecins/nouveau" element={<ProtectedRoute kind="company" requiredPermission={{ action: "CREATE", module: "MEDECIN" }}><AddMedecin /></ProtectedRoute>} />
               <Route path="/medecins/:id" element={<ProtectedRoute kind="company" requiredPermission={{ action: "LIST", module: "MEDECIN" }}><MedecinDetails /></ProtectedRoute>} />
               <Route path="/medecins/:id/modifier" element={<ProtectedRoute kind="company" requiredPermission={{ action: "UPDATE", module: "MEDECIN" }}><EditMedecin /></ProtectedRoute>} />
+
+              {/* Gestion des Examens */}
+              <Route path="/examens" element={<ProtectedRoute kind="company" requiredPermission={{ action: "LIST", module: "EXAMEN" }}><ExamList /></ProtectedRoute>} />
+              <Route path="/examens/nouveau" element={<ProtectedRoute kind="company" requiredPermission={{ action: "CREATE", module: "EXAMEN" }}><ExamCreate /></ProtectedRoute>} />
+              <Route path="/examens/:id" element={<ProtectedRoute kind="company" requiredPermission={{ action: "LIST", module: "EXAMEN" }}><ExamDetails /></ProtectedRoute>} />
+              <Route path="/examens/:id/modifier" element={<ProtectedRoute kind="company" requiredPermission={{ action: "UPDATE", module: "EXAMEN" }}><ExamEdit /></ProtectedRoute>} />
 
               {/* Gestion des Stocks */}
               <Route path="/stocks" element={<ProtectedRoute kind="company" requiredPermission={{ action: "LIST", module: "STOCK" }}><StocksDashboard /></ProtectedRoute>} />

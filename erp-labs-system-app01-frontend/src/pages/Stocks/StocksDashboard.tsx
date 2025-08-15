@@ -90,7 +90,7 @@ export default function StocksDashboard() {
             nom_article: String((raw.article as Record<string, unknown> | undefined)?.nom_article ?? ""),
             quantite_actuelle: Number(raw.quantite_actuelle ?? 0),
             seuil_critique: Number(raw.seuil_critique ?? 0),
-            categorie: String(((raw.article as Record<string, unknown> | undefined)?.categorie as Record<string, unknown> | undefined)?.nom_categorie ?? ((raw.category as Record<string, unknown> | undefined)?.nom_categorie) ?? ""),
+            categorie: String(((raw.article as Record<string, unknown> | undefined)?.category as Record<string, unknown> | undefined)?.nom_categorie ?? ""),
           }))
         );
 

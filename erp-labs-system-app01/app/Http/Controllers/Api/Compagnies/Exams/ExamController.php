@@ -72,8 +72,18 @@ class ExamController extends Controller
     public function show(Exam $exam)
     {
         $this->authorizeExam($exam);
-        $exam->load(['articles:id,nom_article']);
-        return ApiResponse::success($exam, 'exams.details');
+
+        $articles = DB::table('examen_articles')
+            ->join('articles', 'articles.id', '=', 'examen_articles.article_id')
+            ->where('examen_articles.company_id', $exam->company_id)
+            ->where('examen_articles.examen_id', $exam->id)
+            ->select('articles.id', 'articles.nom_article', 'examen_articles.quantite_utilisee')
+            ->get();
+
+        $payload = $exam->toArray();
+        $payload['articles'] = $articles;
+
+        return ApiResponse::success($payload, 'exams.details');
     }
 
     public function update(ExamUpdateRequest $request, Exam $exam)
