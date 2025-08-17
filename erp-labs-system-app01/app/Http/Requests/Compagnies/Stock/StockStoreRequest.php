@@ -6,16 +6,17 @@ use Illuminate\Foundation\Http\FormRequest;
 
 class StockStoreRequest extends FormRequest
 {
-    public function authorize(): bool { return true; }
+	public function authorize(): bool { return true; }
 
-    public function rules(): array
-    {
-        return [
-            'article_id' => ['required','integer','exists:articles,id'],
-            'quantite_actuelle' => ['sometimes','integer','min:0'],
-            'seuil_critique' => ['required','integer','min:0'],
-        ];
-    }
+	public function rules(): array
+	{
+		return [
+			'article_id' => ['required','integer','exists:articles,id'],
+			'quantite_actuelle' => ['sometimes','integer','min:0'],
+			'seuil_critique' => ['required','integer','min:0'],
+			'date_expiration' => ['sometimes','date','nullable'],
+		];
+	}
 }
 
 

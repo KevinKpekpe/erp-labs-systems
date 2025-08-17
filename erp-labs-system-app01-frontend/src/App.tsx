@@ -34,6 +34,7 @@ import MedecinDetails from "./pages/Medecins/MedecinDetails";
 import StocksDashboard from "./pages/Stocks/StocksDashboard";
 import { CategoryArticleList, CategoryArticleCreate, CategoryArticleEdit } from "./pages/Stocks/categoryArticle";
 import { ArticleList, ArticleCreate, ArticleEdit } from "./pages/Stocks/articles";
+import { StockList, StockCreate, StockEdit } from "./pages/Stocks/stocks";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 import SuperAdminHome from "./pages/SuperAdmin/Home";
@@ -42,6 +43,7 @@ import UserProfiles from "./pages/UserProfiles";
 import Forbidden from "./pages/OtherPage/Forbidden";
 import ServerError from "./pages/OtherPage/ServerError";
 import { ExamList, ExamCreate, ExamEdit, ExamDetails } from "./pages/Examens";
+import StockAdd from "./pages/Stocks/stocks/StockAdd";
 
 function CompanyGuard({ children }: { children: React.ReactElement }) {
   const { state } = useAuth();
@@ -109,6 +111,11 @@ export default function App() {
               <Route path="/stocks/articles" element={<ProtectedRoute kind="company" requiredPermission={{ action: "LIST", module: "STOCK" }}><ArticleList /></ProtectedRoute>} />
               <Route path="/stocks/articles/nouveau" element={<ProtectedRoute kind="company" requiredPermission={{ action: "CREATE", module: "STOCK" }}><ArticleCreate /></ProtectedRoute>} />
               <Route path="/stocks/articles/:id/modifier" element={<ProtectedRoute kind="company" requiredPermission={{ action: "UPDATE", module: "STOCK" }}><ArticleEdit /></ProtectedRoute>} />
+
+              <Route path="/stocks/stocks" element={<ProtectedRoute kind="company" requiredPermission={{ action: "LIST", module: "STOCK" }}><StockList /></ProtectedRoute>} />
+              <Route path="/stocks/stocks/nouveau" element={<ProtectedRoute kind="company" requiredPermission={{ action: "CREATE", module: "STOCK" }}><StockCreate /></ProtectedRoute>} />
+              <Route path="/stocks/stocks/:id/modifier" element={<ProtectedRoute kind="company" requiredPermission={{ action: "UPDATE", module: "STOCK" }}><StockEdit /></ProtectedRoute>} />
+              <Route path="/stocks/stocks/:id/add" element={<ProtectedRoute kind="company" requiredPermission={{ action: "UPDATE", module: "STOCK" }}><StockAdd /></ProtectedRoute>} />
 
               {/* Profile & Administration */}
               <Route path="/profile" element={<UserProfiles />} />

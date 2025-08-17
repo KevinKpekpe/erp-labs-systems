@@ -95,6 +95,7 @@ const baseNavItems: NavItem[] = [
     requiredPermission: { action: "LIST", module: "STOCK" },
     subItems: [
       { name: "Tableau de bord", path: "/stocks", requiredPermission: { action: "LIST", module: "STOCK" } },
+      { name: "Stocks", path: "/stocks/stocks", requiredPermission: { action: "LIST", module: "STOCK" } },
       { name: "Articles en stock", path: "/stocks/articles", requiredPermission: { action: "LIST", module: "STOCK" } },
       { name: "Mouvements", path: "/stocks/mouvements", requiredPermission: { action: "LIST", module: "STOCK" } },
       { name: "Alertes", path: "/stocks/alertes", requiredPermission: { action: "LIST", module: "STOCK" } },

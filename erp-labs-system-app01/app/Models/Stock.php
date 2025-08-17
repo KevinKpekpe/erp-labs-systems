@@ -19,6 +19,7 @@ class Stock extends Model
         'article_id',
         'quantite_actuelle',
         'seuil_critique',
+        'date_expiration',
     ];
 
     /** @var list<string> */
