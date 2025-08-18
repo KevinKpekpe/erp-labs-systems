@@ -35,6 +35,7 @@ import StocksDashboard from "./pages/Stocks/StocksDashboard";
 import { CategoryArticleList, CategoryArticleCreate, CategoryArticleEdit } from "./pages/Stocks/categoryArticle";
 import { ArticleList, ArticleCreate, ArticleEdit } from "./pages/Stocks/articles";
 import { StockList, StockCreate, StockEdit } from "./pages/Stocks/stocks";
+import { StockLotsList, StockLotCreate, StockConsume, FifoDashboard, StockLotsTrashed } from "./pages/Stocks/lots";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 import SuperAdminHome from "./pages/SuperAdmin/Home";
@@ -116,6 +117,13 @@ export default function App() {
               <Route path="/stocks/stocks/nouveau" element={<ProtectedRoute kind="company" requiredPermission={{ action: "CREATE", module: "STOCK" }}><StockCreate /></ProtectedRoute>} />
               <Route path="/stocks/stocks/:id/modifier" element={<ProtectedRoute kind="company" requiredPermission={{ action: "UPDATE", module: "STOCK" }}><StockEdit /></ProtectedRoute>} />
               <Route path="/stocks/stocks/:id/add" element={<ProtectedRoute kind="company" requiredPermission={{ action: "UPDATE", module: "STOCK" }}><StockAdd /></ProtectedRoute>} />
+              
+              {/* Nouvelles routes FIFO */}
+              <Route path="/stocks/lots/dashboard" element={<ProtectedRoute kind="company" requiredPermission={{ action: "LIST", module: "STOCK" }}><FifoDashboard /></ProtectedRoute>} />
+              <Route path="/stocks/lots-trashed" element={<ProtectedRoute kind="company" requiredPermission={{ action: "LIST", module: "STOCK" }}><StockLotsTrashed /></ProtectedRoute>} />
+              <Route path="/stocks/stocks/:stockId/lots" element={<ProtectedRoute kind="company" requiredPermission={{ action: "LIST", module: "STOCK" }}><StockLotsList /></ProtectedRoute>} />
+              <Route path="/stocks/stocks/:stockId/add-lot" element={<ProtectedRoute kind="company" requiredPermission={{ action: "CREATE", module: "STOCK" }}><StockLotCreate /></ProtectedRoute>} />
+              <Route path="/stocks/stocks/:stockId/consume" element={<ProtectedRoute kind="company" requiredPermission={{ action: "UPDATE", module: "STOCK" }}><StockConsume /></ProtectedRoute>} />
 
               {/* Profile & Administration */}
               <Route path="/profile" element={<UserProfiles />} />

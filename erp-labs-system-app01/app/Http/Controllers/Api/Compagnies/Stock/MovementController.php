@@ -22,107 +22,100 @@ class MovementController extends Controller
 		$dir = request('dir', 'desc') === 'asc' ? 'asc' : 'desc';
 
 		$movements = StockMovement::where('company_id', $companyId)
-			->with(['stock:id,article_id', 'stock.article:id,nom_article'])
+			->with([
+				'stock:id,article_id',
+				'stock.article:id,nom_article',
+				'stockLot:id,code,numero_lot,date_expiration'
+			])
 			->search($q)
 			->orderBy($sort, $dir)
 			->paginate($perPage);
+
+		// Ajouter les informations calculées
+		$movements->getCollection()->transform(function ($movement) {
+			$movement->valeur_totale = $movement->valeur_totale;
+			return $movement;
+		});
+
 		return ApiResponse::success($movements, 'stock.movements.list');
 	}
 
 	public function store(MovementStoreRequest $request)
 	{
-		$companyId = $request->user()->company_id;
-		$data = $request->validated();
-
-		$movement = DB::transaction(function () use ($companyId, $data) {
-			// Verrou stock pour éviter les races
-			$stock = Stock::where('company_id', $companyId)->lockForUpdate()->findOrFail($data['stock_id']);
-
-			$quantity = (int) $data['quantite'];
-			if ($quantity <= 0) {
-				return ApiResponse::error('validation.invalid_quantity', 422, 'INVALID_QUANTITY');
-			}
-
-			if ($data['type_mouvement'] === 'Sortie') {
-				if ($stock->quantite_actuelle < $quantity) {
-					return ApiResponse::error('stock.movements.not_enough', 422, 'NOT_ENOUGH_STOCK');
-				}
-				$stock->quantite_actuelle -= $quantity;
-			} else {
-				$stock->quantite_actuelle += $quantity;
-			}
-			$stock->save();
-
-			$movement = StockMovement::create([
-				'company_id' => $companyId,
-				'code' => CodeGenerator::generate('mouvement_stocks', $companyId, 'MOV'),
-				'stock_id' => $stock->id,
-				'date_mouvement' => $data['date_mouvement'] ?? now(),
-				'quantite' => $quantity,
-				'type_mouvement' => $data['type_mouvement'],
-				'demande_id' => $data['demande_id'] ?? null,
-				'motif' => $data['motif'] ?? null,
-			]);
-
-			return $movement;
-		});
-
-		// Note: la génération d'alerte sera faite dans le module Alerte
-
-		return ApiResponse::success($movement->load(['stock:id,article_id', 'stock.article:id,nom_article']), 'stock.movements.created', [], 201);
+		// Note: Cette méthode est dépréciée en faveur de la nouvelle logique FIFO
+		// Utilisez StockController@consumeStock ou StockController@addStockLot à la place
+		return ApiResponse::error(
+			'Cette méthode est dépréciée. Utilisez les nouvelles méthodes FIFO dans StockController.',
+			410,
+			'METHOD_DEPRECATED'
+		);
 	}
 
 	public function update(MovementUpdateRequest $request, StockMovement $movement)
 	{
 		$this->authorizeMovement($movement);
+
+		// Seuls les champs non critiques peuvent être modifiés
+		// Les quantités et lots ne peuvent pas être modifiés pour préserver l'intégrité FIFO
 		$data = $request->validated();
+		$allowedFields = ['date_mouvement', 'motif'];
+		$payload = [];
 
-		$movement = DB::transaction(function () use ($movement, $data) {
-			$stock = Stock::where('company_id', $movement->company_id)->lockForUpdate()->findOrFail($movement->stock_id);
-
-			$oldType = $movement->type_mouvement;
-			$oldQty = (int) $movement->quantite;
-			$newType = $data['type_mouvement'] ?? $oldType;
-			$newQty = isset($data['quantite']) ? (int) $data['quantite'] : $oldQty;
-
-			// Revert ancien effet puis appliquer le nouveau
-			$delta = 0;
-			$delta -= ($oldType === 'Entrée') ? $oldQty : -$oldQty; // revert
-			$delta += ($newType === 'Entrée') ? $newQty : -$newQty; // apply
-
-			if ($delta < 0 && $stock->quantite_actuelle < abs($delta)) {
-				return ApiResponse::error('stock.movements.not_enough', 422, 'NOT_ENOUGH_STOCK');
+		foreach ($allowedFields as $field) {
+			if (array_key_exists($field, $data)) {
+				$payload[$field] = $data[$field];
 			}
-			$stock->quantite_actuelle += $delta;
-			$stock->save();
+		}
 
-			$payload = [];
-			foreach (['type_mouvement','quantite','date_mouvement','motif'] as $f) {
-				if (array_key_exists($f, $data)) { $payload[$f] = $data[$f]; }
-			}
-			if ($payload) { $movement->update($payload); }
+		if ($payload) {
+			$movement->update($payload);
+		}
 
-			return $movement->fresh();
-		});
-
-		return ApiResponse::success($movement->load(['stock:id,article_id','stock.article:id,nom_article']), 'stock.movements.updated');
+		return ApiResponse::success(
+			$movement->fresh()->load(['stock:id,article_id','stock.article:id,nom_article', 'stockLot:id,code,numero_lot']),
+			'stock.movements.updated'
+		);
 	}
 
 	public function destroy(StockMovement $movement)
 	{
 		$this->authorizeMovement($movement);
 
+		// La suppression de mouvements est désormais restreinte pour préserver l'intégrité FIFO
+		// Seuls les mouvements récents (< 24h) peuvent être supprimés
+		if ($movement->created_at->diffInHours(now()) > 24) {
+			return ApiResponse::error(
+				'Les mouvements de plus de 24h ne peuvent pas être supprimés pour préserver l\'intégrité du système FIFO.',
+				422,
+				'MOVEMENT_TOO_OLD'
+			);
+		}
+
 		DB::transaction(function () use ($movement) {
-			$stock = Stock::where('company_id', $movement->company_id)->lockForUpdate()->findOrFail($movement->stock_id);
-			if ($movement->type_mouvement === 'Entrée') {
-				if ($stock->quantite_actuelle < $movement->quantite) {
-					abort(422, __('messages.stock.movements.not_enough'));
+			if ($movement->stockLot) {
+				// Restaurer la quantité dans le lot
+				$lot = $movement->stockLot;
+				$lot->lockForUpdate();
+
+				if ($movement->type_mouvement === 'Entrée') {
+					// Pour une entrée, on doit vérifier si on peut retirer la quantité
+					if ($lot->quantite_restante < $movement->quantite) {
+						abort(422, 'Impossible de supprimer ce mouvement : le lot a déjà été partiellement consommé.');
+					}
+					$lot->quantite_restante -= $movement->quantite;
+					$lot->quantite_initiale -= $movement->quantite;
+				} else {
+					// Pour une sortie, on restaure la quantité
+					$lot->quantite_restante += $movement->quantite;
 				}
-				$stock->quantite_actuelle -= (int) $movement->quantite;
-			} else {
-				$stock->quantite_actuelle += (int) $movement->quantite;
+				$lot->save();
 			}
+
+			// Mettre à jour le stock principal
+			$stock = Stock::where('company_id', $movement->company_id)->lockForUpdate()->findOrFail($movement->stock_id);
+			$stock->quantite_actuelle = $stock->quantite_actuelle_calculee;
 			$stock->save();
+
 			$movement->delete();
 		});
 
@@ -150,6 +143,53 @@ class MovementController extends Controller
 		});
 
 		return ApiResponse::success($movement->fresh()->load(['stock:id,article_id','stock.article:id,nom_article']), 'stock.movements.restored');
+	}
+
+	public function show(StockMovement $movement)
+	{
+		$this->authorizeMovement($movement);
+		$movement->load([
+			'stock:id,article_id',
+			'stock.article:id,nom_article',
+			'stockLot:id,code,numero_lot,date_expiration,prix_unitaire_achat'
+		]);
+		return ApiResponse::success($movement, 'stock.movements.details');
+	}
+
+	public function movementsByLot($lotId)
+	{
+		$companyId = request()->user()->company_id;
+		$perPage = (int) (request('per_page') ?? 15);
+
+		$movements = StockMovement::where('company_id', $companyId)
+			->where('stock_lot_id', $lotId)
+			->with([
+				'stock:id,article_id',
+				'stock.article:id,nom_article',
+				'stockLot:id,code,numero_lot'
+			])
+			->orderBy('date_mouvement', 'desc')
+			->paginate($perPage);
+
+		return ApiResponse::success($movements, 'stock.movements.by_lot');
+	}
+
+	public function movementsByArticle($articleId)
+	{
+		$companyId = request()->user()->company_id;
+		$perPage = (int) (request('per_page') ?? 15);
+
+		$movements = StockMovement::where('company_id', $companyId)
+			->forArticle($articleId)
+			->with([
+				'stock:id,article_id',
+				'stock.article:id,nom_article',
+				'stockLot:id,code,numero_lot'
+			])
+			->orderBy('date_mouvement', 'desc')
+			->paginate($perPage);
+
+		return ApiResponse::success($movements, 'stock.movements.by_article');
 	}
 
 	private function authorizeMovement(StockMovement $movement): void

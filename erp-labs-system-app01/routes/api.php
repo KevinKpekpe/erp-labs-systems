@@ -13,6 +13,7 @@ use App\Http\Controllers\Api\Compagnies\Stock\CategoryController as StockCategor
 use App\Http\Controllers\Api\Compagnies\Stock\ArticleController as StockArticleController;
 use App\Http\Controllers\Api\Compagnies\Stock\StockController as StockStockController;
 use App\Http\Controllers\Api\Compagnies\Stock\MovementController as StockMovementController;
+use App\Http\Controllers\Api\Compagnies\Stock\StockLotController;
 use App\Http\Controllers\Api\Compagnies\Patients\PatientTypeController;
 use App\Http\Controllers\Api\Compagnies\Patients\DoctorController;
 use App\Http\Controllers\Api\Compagnies\Patients\PatientController;
@@ -130,7 +131,7 @@ Route::prefix('v1')->group(function () {
 		Route::post('/stock/articles/{id}/restore', [StockArticleController::class, 'restore'])->middleware('can.permission:UPDATE,STOCK');
 		Route::delete('/stock/articles/{id}/force', [StockArticleController::class, 'forceDelete'])->middleware('can.permission:DELETE,STOCK');
 
-		// Stock - Stocks
+		// Stock - Stocks (Vue agrégée)
 		Route::get('/stock/stocks', [StockStockController::class, 'index'])->middleware('can.permission:LIST,STOCK');
 		Route::post('/stock/stocks', [StockStockController::class, 'store'])->middleware('can.permission:CREATE,STOCK');
 		Route::get('/stock/stocks/{stock}', [StockStockController::class, 'show'])->middleware('can.permission:LIST,STOCK');
@@ -139,14 +140,37 @@ Route::prefix('v1')->group(function () {
 		Route::get('/stock/stocks-trashed', [StockStockController::class, 'trashed'])->middleware('can.permission:LIST,STOCK');
 		Route::post('/stock/stocks/{id}/restore', [StockStockController::class, 'restore'])->middleware('can.permission:UPDATE,STOCK');
 		Route::delete('/stock/stocks/{id}/force', [StockStockController::class, 'forceDelete'])->middleware('can.permission:DELETE,STOCK');
-		Route::post('/stock/stocks/{stock}/add', [StockStockController::class, 'addStock'])->middleware('can.permission:UPDATE,STOCK');
 
-		// Stock - Movements
+		// Stock - Gestion FIFO des lots
+		Route::post('/stock/stocks/{stock}/lots', [StockStockController::class, 'addStockLot'])->middleware('can.permission:CREATE,STOCK');
+		Route::post('/stock/stocks/{stock}/consume', [StockStockController::class, 'consumeStock'])->middleware('can.permission:UPDATE,STOCK');
+		Route::get('/stock/stocks/{stock}/lots', [StockStockController::class, 'stockLots'])->middleware('can.permission:LIST,STOCK');
+		Route::get('/stock/stocks/{stock}/available-lots', [StockStockController::class, 'availableLots'])->middleware('can.permission:LIST,STOCK');
+		Route::get('/stock/stocks/{stockId}/lots/{lotId}', [StockStockController::class, 'lotDetails'])->middleware('can.permission:LIST,STOCK');
+
+		// Stock - Movements (Lecture seule principalement)
 		Route::get('/stock/movements', [StockMovementController::class, 'index'])->middleware('can.permission:LIST,STOCK');
-		Route::post('/stock/movements', [StockMovementController::class, 'store'])->middleware('can.permission:CREATE,STOCK');
+		Route::get('/stock/movements/{movement}', [StockMovementController::class, 'show'])->middleware('can.permission:LIST,STOCK');
 		Route::put('/stock/movements/{movement}', [StockMovementController::class, 'update'])->middleware('can.permission:UPDATE,STOCK');
 		Route::delete('/stock/movements/{movement}', [StockMovementController::class, 'destroy'])->middleware('can.permission:DELETE,STOCK');
 		Route::post('/stock/movements/{id}/restore', [StockMovementController::class, 'restore'])->middleware('can.permission:UPDATE,STOCK');
+		Route::get('/stock/movements/by-lot/{lotId}', [StockMovementController::class, 'movementsByLot'])->middleware('can.permission:LIST,STOCK');
+		Route::get('/stock/movements/by-article/{articleId}', [StockMovementController::class, 'movementsByArticle'])->middleware('can.permission:LIST,STOCK');
+
+		// Stock - Méthode dépréciée (conservée pour compatibilité)
+		Route::post('/stock/movements', [StockMovementController::class, 'store'])->middleware('can.permission:CREATE,STOCK');
+
+		// Stock - Gestion avancée des lots
+		Route::get('/stock/lots', [StockLotController::class, 'index'])->middleware('can.permission:LIST,STOCK');
+		Route::get('/stock/lots/{stockLot}', [StockLotController::class, 'show'])->middleware('can.permission:LIST,STOCK');
+		Route::put('/stock/lots/{stockLot}', [StockLotController::class, 'update'])->middleware('can.permission:UPDATE,STOCK');
+		Route::delete('/stock/lots/{stockLot}', [StockLotController::class, 'destroy'])->middleware('can.permission:DELETE,STOCK');
+		Route::get('/stock/lots-trashed', [StockLotController::class, 'trashed'])->middleware('can.permission:LIST,STOCK');
+		Route::post('/stock/lots/{id}/restore', [StockLotController::class, 'restore'])->middleware('can.permission:UPDATE,STOCK');
+		Route::delete('/stock/lots/{id}/force', [StockLotController::class, 'forceDelete'])->middleware('can.permission:DELETE,STOCK');
+		Route::get('/stock/lots-expired', [StockLotController::class, 'expiredLots'])->middleware('can.permission:LIST,STOCK');
+		Route::get('/stock/lots-near-expiration', [StockLotController::class, 'nearExpirationLots'])->middleware('can.permission:LIST,STOCK');
+		Route::get('/stock/lots-value', [StockLotController::class, 'stockValue'])->middleware('can.permission:LIST,STOCK');
 
 		// Stock - Alerts
 		Route::get('/stock/alerts', [StockAlertController::class, 'index'])->middleware('can.permission:LIST,STOCK');
