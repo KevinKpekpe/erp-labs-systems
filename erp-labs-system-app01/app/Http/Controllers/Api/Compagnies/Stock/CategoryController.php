@@ -36,6 +36,14 @@ class CategoryController extends Controller
             'company_id' => $companyId,
             'code' => CodeGenerator::generate('categorie_articles', $companyId, 'CAT'),
             'nom_categorie' => $data['nom_categorie'],
+            'type_laboratoire' => $data['type_laboratoire'] ?? null,
+            'conditions_stockage_requises' => $data['conditions_stockage_requises'] ?? null,
+            'temperature_stockage_min' => $data['temperature_stockage_min'] ?? null,
+            'temperature_stockage_max' => $data['temperature_stockage_max'] ?? null,
+            'humidite_max' => $data['humidite_max'] ?? null,
+            'sensible_lumiere' => $data['sensible_lumiere'] ?? false,
+            'chaine_froid_critique' => $data['chaine_froid_critique'] ?? false,
+            'delai_alerte_expiration' => $data['delai_alerte_expiration'] ?? 30,
         ]);
 
         return ApiResponse::success($category, 'stock.categories.created', [], 201);
@@ -51,7 +59,19 @@ class CategoryController extends Controller
     {
         $this->authorizeCategory($category);
         $data = $request->validated();
-        $category->update(['nom_categorie' => $data['nom_categorie']]);
+
+        $category->update([
+            'nom_categorie' => $data['nom_categorie'],
+            'type_laboratoire' => $data['type_laboratoire'] ?? null,
+            'conditions_stockage_requises' => $data['conditions_stockage_requises'] ?? null,
+            'temperature_stockage_min' => $data['temperature_stockage_min'] ?? null,
+            'temperature_stockage_max' => $data['temperature_stockage_max'] ?? null,
+            'humidite_max' => $data['humidite_max'] ?? null,
+            'sensible_lumiere' => $data['sensible_lumiere'] ?? false,
+            'chaine_froid_critique' => $data['chaine_froid_critique'] ?? false,
+            'delai_alerte_expiration' => $data['delai_alerte_expiration'] ?? 30,
+        ]);
+
         return ApiResponse::success($category->fresh(), 'stock.categories.updated');
     }
 

@@ -17,6 +17,14 @@ class CategoryStoreRequest extends FormRequest
                 'required','string','max:100',
                 Rule::unique('categorie_articles','nom_categorie')->where(fn($q) => $q->where('company_id', $companyId)),
             ],
+            'type_laboratoire' => 'nullable|string|in:Réactifs,Consommables,Équipements,Contrôles,Références,Kits,Autre',
+            'conditions_stockage_requises' => 'nullable|string|max:500',
+            'temperature_stockage_min' => 'nullable|numeric',
+            'temperature_stockage_max' => 'nullable|numeric',
+            'humidite_max' => 'nullable|numeric|min:0|max:100',
+            'sensible_lumiere' => 'boolean',
+            'chaine_froid_critique' => 'boolean',
+            'delai_alerte_expiration' => 'integer|min:1|max:365',
         ];
     }
 }

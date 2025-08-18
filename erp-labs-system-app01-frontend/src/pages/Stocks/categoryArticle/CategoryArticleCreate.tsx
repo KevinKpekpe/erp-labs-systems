@@ -11,20 +11,59 @@ function getErrorMessage(err: unknown): string {
   return 'Une erreur est survenue.';
 }
 
+interface CategoryFormData {
+  nom_categorie: string;
+  type_laboratoire: string;
+  conditions_stockage_requises: string;
+  temperature_stockage_min: string;
+  temperature_stockage_max: string;
+  humidite_max: string;
+  sensible_lumiere: boolean;
+  chaine_froid_critique: boolean;
+  delai_alerte_expiration: string;
+}
+
 export default function CategoryArticleCreate() {
   const navigate = useNavigate();
-  const [nom, setNom] = useState("");
+  const [formData, setFormData] = useState<CategoryFormData>({
+    nom_categorie: "",
+    type_laboratoire: "",
+    conditions_stockage_requises: "",
+    temperature_stockage_min: "",
+    temperature_stockage_max: "",
+    humidite_max: "",
+    sensible_lumiere: false,
+    chaine_froid_critique: false,
+    delai_alerte_expiration: "30",
+  });
   const [error, setError] = useState<string | null>(null);
   const [apiError, setApiError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
+  const handleInputChange = (field: keyof CategoryFormData, value: string | boolean) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null); setApiError(null);
-    if (!nom.trim()) { setError("Le nom de la catégorie est requis"); return; }
+    if (!formData.nom_categorie.trim()) { setError("Le nom de la catégorie est requis"); return; }
+    
     setSubmitting(true);
     try {
-      await apiFetch("/v1/stock/categories", { method: "POST", body: JSON.stringify({ nom_categorie: nom }) }, "company");
+      const payload = {
+        nom_categorie: formData.nom_categorie,
+        ...(formData.type_laboratoire && { type_laboratoire: formData.type_laboratoire }),
+        ...(formData.conditions_stockage_requises && { conditions_stockage_requises: formData.conditions_stockage_requises }),
+        ...(formData.temperature_stockage_min && { temperature_stockage_min: parseFloat(formData.temperature_stockage_min) }),
+        ...(formData.temperature_stockage_max && { temperature_stockage_max: parseFloat(formData.temperature_stockage_max) }),
+        ...(formData.humidite_max && { humidite_max: parseFloat(formData.humidite_max) }),
+        sensible_lumiere: formData.sensible_lumiere,
+        chaine_froid_critique: formData.chaine_froid_critique,
+        delai_alerte_expiration: parseInt(formData.delai_alerte_expiration),
+      };
+
+      await apiFetch("/v1/stock/categories", { method: "POST", body: JSON.stringify(payload) }, "company");
       navigate("/stocks/categories", { state: { success: "Catégorie créée avec succès." } });
     } catch (err: unknown) {
       setApiError(getErrorMessage(err));
@@ -45,8 +84,8 @@ export default function CategoryArticleCreate() {
         <div className="rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03]">
           <form onSubmit={submit} className="space-y-6">
             <div>
-              <label htmlFor="nom" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Nom de la catégorie <span className="text-red-500">*</span></label>
-              <Input id="nom" type="text" placeholder="Ex: Réactifs" value={nom} onChange={(e) => setNom(e.target.value)} className={error ? "border-red-500" : ""} />
+              <label htmlFor="nom_categorie" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Nom de la catégorie <span className="text-red-500">*</span></label>
+              <Input id="nom_categorie" type="text" placeholder="Ex: Réactifs" value={formData.nom_categorie} onChange={(e) => handleInputChange('nom_categorie', e.target.value)} className={error ? "border-red-500" : ""} />
               {error && <p className="mt-1 text-sm text-red-500">{error}</p>}
             </div>
             <div className="flex justify-end space-x-3 pt-6">

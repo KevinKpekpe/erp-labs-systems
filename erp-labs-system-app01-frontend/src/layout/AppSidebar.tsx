@@ -94,12 +94,15 @@ const baseNavItems: NavItem[] = [
     name: "Gestion des Stocks",
     requiredPermission: { action: "LIST", module: "STOCK" },
     subItems: [
-      { name: "Tableau de bord", path: "/stocks", requiredPermission: { action: "LIST", module: "STOCK" } },
+      { name: "Dashboard Laboratoire", path: "/stocks/laboratory", requiredPermission: { action: "LIST", module: "STOCK" } },
+      { name: "Dashboard FIFO", path: "/stocks/lots/dashboard", requiredPermission: { action: "LIST", module: "STOCK" } },
       { name: "Stocks", path: "/stocks/stocks", requiredPermission: { action: "LIST", module: "STOCK" } },
       { name: "Articles en stock", path: "/stocks/articles", requiredPermission: { action: "LIST", module: "STOCK" } },
+      { name: "Catégories laboratoire", path: "/stocks/categories/laboratory", requiredPermission: { action: "LIST", module: "STOCK" } },
+      { name: "Corbeille", path: "/stocks/lots-trashed", requiredPermission: { action: "LIST", module: "STOCK" } },
+      { name: "Lots expirés", path: "/stocks/lots/expired", requiredPermission: { action: "LIST", module: "STOCK" } },
       { name: "Mouvements", path: "/stocks/mouvements", requiredPermission: { action: "LIST", module: "STOCK" } },
       { name: "Alertes", path: "/stocks/alertes", requiredPermission: { action: "LIST", module: "STOCK" } },
-      { name: "Catégories", path: "/stocks/categories", requiredPermission: { action: "LIST", module: "STOCK" } },
     ],
   },
   {

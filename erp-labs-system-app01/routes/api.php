@@ -157,8 +157,9 @@ Route::prefix('v1')->group(function () {
 		Route::get('/stock/movements/by-lot/{lotId}', [StockMovementController::class, 'movementsByLot'])->middleware('can.permission:LIST,STOCK');
 		Route::get('/stock/movements/by-article/{articleId}', [StockMovementController::class, 'movementsByArticle'])->middleware('can.permission:LIST,STOCK');
 
-		// Stock - Méthode dépréciée (conservée pour compatibilité)
-		Route::post('/stock/movements', [StockMovementController::class, 'store'])->middleware('can.permission:CREATE,STOCK');
+		// DEPRECATED : Ancienne méthode de création de mouvements (ne plus utiliser)
+		// Utilisez maintenant les méthodes FIFO : POST /stock/stocks/{stock}/lots et POST /stock/stocks/{stock}/consume
+		// Route::post('/stock/movements', [StockMovementController::class, 'store'])->middleware('can.permission:CREATE,STOCK');
 
 		// Stock - Gestion avancée des lots
 		Route::get('/stock/lots', [StockLotController::class, 'index'])->middleware('can.permission:LIST,STOCK');

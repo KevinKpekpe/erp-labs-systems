@@ -60,16 +60,34 @@ class StockController extends Controller
 
 		$article = Article::where('company_id', $companyId)->findOrFail($data['article_id']);
 
+		// Nouveau système FIFO : le stock est créé SANS quantité initiale
+		// La quantité sera gérée via les lots uniquement
 		$stock = Stock::create([
 			'company_id' => $companyId,
 			'code' => CodeGenerator::generate('stocks', $companyId, 'STK'),
 			'article_id' => $article->id,
-			'quantite_actuelle' => $data['quantite_actuelle'] ?? 0,
+			'quantite_actuelle' => 0, // Toujours 0, calculé via les lots
 			'seuil_critique' => $data['seuil_critique'],
 			'date_expiration' => $data['date_expiration'] ?? null,
 		]);
 
-		return ApiResponse::success($stock, 'stock.stocks.created', [], 201);
+		// Si une quantité initiale est fournie, créer un lot automatiquement
+		if (isset($data['quantite_actuelle']) && $data['quantite_actuelle'] > 0) {
+			$lotData = [
+				'article_id' => $article->id,
+				'quantite_initiale' => $data['quantite_actuelle'],
+				'date_entree' => now()->format('Y-m-d'),
+				'date_expiration' => $data['date_expiration'] ?? null,
+				'prix_unitaire_achat' => $data['prix_unitaire_achat'] ?? $article->prix_unitaire,
+				'numero_lot' => 'INITIAL-' . time(),
+				'fournisseur_lot' => $data['fournisseur'] ?? $article->fournisseur,
+				'commentaire' => 'Lot initial créé automatiquement lors de la création du stock',
+			];
+
+			$this->fifoService->processStockEntry($stock, $lotData);
+		}
+
+		return ApiResponse::success($stock->fresh(), 'stock.stocks.created', [], 201);
 	}
 
 	public function show(Stock $stock)
