@@ -8,6 +8,7 @@ use App\Models\StockAlert;
 use App\Models\StockLot;
 use App\Support\ApiResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class AlertController extends Controller
 {
@@ -171,9 +172,17 @@ class AlertController extends Controller
 
         // 1. Alertes de stock critique
         $stocksCritiques = Stock::where('company_id', $companyId)
-            ->with(['article:id,nom_article,categorie_id','article.category:id,nom_categorie,type_laboratoire,chaine_froid_critique'])
-                ->whereColumn('quantite_actuelle', '<=', 'seuil_critique')
-            ->get();
+            ->with([
+                'article:id,nom_article,categorie_id',
+                'article.category:id,nom_categorie,type_laboratoire,chaine_froid_critique'
+            ])
+            ->withCalculatedQuantity()
+            ->get()
+            ->filter(function ($stock) {
+                $quantite = (int) ($stock->quantite_calculee ?? 0);
+                $seuil = (int) ($stock->seuil_critique ?? 0);
+                return $seuil > 0 && $quantite <= $seuil;
+            });
 
         foreach ($stocksCritiques as $stock) {
             $alerts->push([
@@ -181,10 +190,12 @@ class AlertController extends Controller
                 'type' => StockAlert::TYPE_STOCK_CRITIQUE,
                 'priorite' => StockAlert::PRIORITE_HAUTE,
                 'titre' => 'Stock critique détecté',
-                'message' => "Le stock de {$stock->article->nom_article} est sous le seuil critique ({$stock->quantite_actuelle} unités restantes)",
+                'message' => "Le stock de {$stock->article->nom_article} est sous le seuil critique (" . ((int) ($stock->quantite_calculee ?? 0)) . " unités restantes)",
                 'stock_id' => $stock->id,
                 'date_alerte' => now()->toDateTimeString(),
                 'statut' => StockAlert::STATUT_NOUVEAU,
+                'quantite_actuelle' => (int) ($stock->quantite_calculee ?? 0),
+                'seuil_critique' => (int) ($stock->seuil_critique ?? 0),
                 'stock' => [
                     'id' => $stock->id,
                     'article' => [

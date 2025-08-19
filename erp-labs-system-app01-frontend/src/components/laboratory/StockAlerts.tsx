@@ -3,11 +3,11 @@ import Badge from "../ui/badge/Badge";
 import { apiFetch } from "../../lib/apiClient";
 
 interface ApiStockAlert {
-  id: number;
+  id: number | string;
   stock?: { id: number; article?: { id: number; nom_article: string } };
-  quantite_actuelle: number;
-  seuil_critique: number;
-  date_alerte: string;
+  quantite_actuelle?: number | string | null;
+  seuil_critique?: number | string | null;
+  date_alerte?: string;
   message_alerte?: string;
 }
 
@@ -32,15 +32,25 @@ export default function StockAlerts() {
     return () => { mounted = false; };
   }, []);
 
-  const mapped = useMemo(() => alerts.map(a => ({
-    id: a.id,
-    articleName: a.stock?.article?.nom_article || a.message_alerte || "Article",
-    quantiteActuelle: a.quantite_actuelle,
-    seuilCritique: a.seuil_critique,
-    unite: "",
-    dateAlerte: a.date_alerte,
-    priorite: a.quantite_actuelle <= a.seuil_critique/2 ? "Critique" : (a.quantite_actuelle <= a.seuil_critique ? "Urgente" : "Normale") as const,
-  })), [alerts]);
+  const mapped = useMemo(() => alerts.map(a => {
+    const qRaw = Number(a.quantite_actuelle ?? 0);
+    const seuilRaw = Number(a.seuil_critique ?? 0);
+    const quantiteActuelle = Number.isFinite(qRaw) ? qRaw : 0;
+    const seuilCritique = Number.isFinite(seuilRaw) ? seuilRaw : 0;
+    let priorite: "Critique" | "Urgente" | "Normale" = "Normale";
+    if (seuilCritique > 0) {
+      priorite = quantiteActuelle <= seuilCritique / 2 ? "Critique" : (quantiteActuelle <= seuilCritique ? "Urgente" : "Normale");
+    }
+    return {
+      id: a.id as any,
+      articleName: a.stock?.article?.nom_article || a.message_alerte || "Article",
+      quantiteActuelle,
+      seuilCritique,
+      unite: "",
+      dateAlerte: a.date_alerte || "",
+      priorite,
+    };
+  }), [alerts]);
 
   const getPrioriteColor = (priorite: string) => {
     switch (priorite) {
