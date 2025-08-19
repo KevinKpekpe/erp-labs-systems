@@ -15,7 +15,7 @@ interface StockAlert {
   message: string;
   stock_id?: number;
   lot_id?: number;
-  date_creation: string;
+  date_alerte: string;
   date_traitement?: string;
   statut: 'nouveau' | 'en_cours' | 'traite' | 'ignore';
   stock?: {
@@ -91,77 +91,17 @@ export default function AlertsManagement() {
       if (showTrashed) params.append('trashed', '1');
       params.append('per_page', '50');
 
-      // Simulons les données d'alertes pour le moment
-      // En production, cela viendrait d'une API dédiée comme /v1/stock/alerts
-      const simulatedAlerts: StockAlert[] = [
-        {
-          id: 1,
-          type: 'stock_critique',
-          priorite: 'haute',
-          titre: 'Stock critique détecté',
-          message: 'Le stock de Réactifs Biochimie est sous le seuil critique (5 unités restantes)',
-          stock_id: 1,
-          date_creation: new Date().toISOString(),
-          statut: 'nouveau',
-          stock: {
-            id: 1,
-            article: {
-              nom_article: 'Réactifs Biochimie',
-              categorie: {
-                nom_categorie: 'Réactifs',
-                type_laboratoire: 'Réactifs',
-                chaine_froid_critique: true,
-              },
-            },
-          },
-          created_at: new Date().toISOString(),
-        },
-        {
-          id: 2,
-          type: 'expiration_proche',
-          priorite: 'moyenne',
-          titre: 'Expiration proche',
-          message: 'Le lot LOT-2024-001 expire dans 7 jours',
-          lot_id: 1,
-          date_creation: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
-          statut: 'nouveau',
-          lot: {
-            id: 1,
-            code: 'LOT-2024-001',
-            numero_lot: 'BIO-001',
-            date_expiration: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-          },
-          created_at: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
-        },
-        {
-          id: 3,
-          type: 'chaine_froid',
-          priorite: 'haute',
-          titre: 'Alerte chaîne du froid',
-          message: 'Rupture de la chaîne du froid détectée pour les réactifs critiques',
-          stock_id: 2,
-          date_creation: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-          statut: 'en_cours',
-          stock: {
-            id: 2,
-            article: {
-              nom_article: 'Contrôles Pathologiques',
-              categorie: {
-                nom_categorie: 'Contrôles',
-                type_laboratoire: 'Contrôles',
-                chaine_froid_critique: true,
-              },
-            },
-          },
-          created_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-        },
-      ];
-
-      setAlerts(simulatedAlerts.filter(alert => 
-        showTrashed ? alert.deleted_at : !alert.deleted_at
-      ));
+      // Appel API réel au backend
+      const response = await apiFetch(`/v1/stock/alerts?${params.toString()}`, {}, 'company');
+      
+      if (response.success && response.data) {
+        setAlerts(response.data.data || []);
+      } else {
+        setAlerts([]);
+      }
     } catch (e) {
       setApiError(getErrorMessage(e));
+      setAlerts([]);
     } finally {
       setLoading(false);
     }
@@ -198,9 +138,40 @@ export default function AlertsManagement() {
     if (!actionModal.alert) return;
 
     try {
-      // Simulation des actions sur les alertes
-      // En production, cela ferait des appels API comme:
-      // await apiFetch(`/v1/stock/alerts/${actionModal.alert.id}/${actionModal.action}`, { method: 'POST' }, 'company');
+      let endpoint = '';
+      let method = 'POST';
+      
+      switch (actionModal.action) {
+        case 'traiter':
+          endpoint = `/v1/stock/alerts/${actionModal.alert.id}`;
+          method = 'PUT';
+          break;
+        case 'ignorer':
+          endpoint = `/v1/stock/alerts/${actionModal.alert.id}`;
+          method = 'PUT';
+          break;
+        case 'supprimer':
+          endpoint = `/v1/stock/alerts/${actionModal.alert.id}`;
+          method = 'DELETE';
+          break;
+        case 'restaurer':
+          endpoint = `/v1/stock/alerts/${actionModal.alert.id}/restore`;
+          method = 'POST';
+          break;
+        case 'force_delete':
+          endpoint = `/v1/stock/alerts/${actionModal.alert.id}/force`;
+          method = 'DELETE';
+          break;
+      }
+      
+      let payload = {};
+      if (actionModal.action === 'traiter') {
+        payload = { statut: 'traite' };
+      } else if (actionModal.action === 'ignorer') {
+        payload = { statut: 'ignore' };
+      }
+      
+      await apiFetch(endpoint, { method, body: JSON.stringify(payload) }, 'company');
       
       let message = '';
       switch (actionModal.action) {
@@ -493,7 +464,7 @@ export default function AlertsManagement() {
                       </p>
                       
                       <div className="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
-                        <span>Créé le {formatDateTime(alert.date_creation)}</span>
+                        <span>Créé le {formatDateTime(alert.date_alerte)}</span>
                         {alert.stock && (
                           <span>
                             Stock: {alert.stock.article.nom_article}

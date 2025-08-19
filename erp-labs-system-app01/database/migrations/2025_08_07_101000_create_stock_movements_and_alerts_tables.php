@@ -26,7 +26,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('company_id')->constrained('companies');
             $table->string('code', 50)->unique();
-            $table->foreignId('stock_id')->constrained('stocks');
+            $table->foreignId('stock_id')->nullable()->constrained('stocks');
             $table->dateTime('date_alerte');
             $table->integer('quantite_actuelle');
             $table->integer('seuil_critique');

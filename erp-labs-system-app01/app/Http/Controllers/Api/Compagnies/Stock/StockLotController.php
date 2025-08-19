@@ -18,16 +18,25 @@ class StockLotController extends Controller
         $sort = request('sort', 'date_entree');
         $dir = request('dir', 'desc') === 'asc' ? 'asc' : 'desc';
 
-        // Filtres optionnels
+        // Filtres avancés
         $articleId = request('article_id');
         $availableOnly = request('available_only') === 'true';
         $expiredOnly = request('expired_only') === 'true';
         $nearExpirationOnly = request('near_expiration_only') === 'true';
+        $fournisseur = request('fournisseur');
+        $dateEntreeDebut = request('date_entree_debut');
+        $dateEntreeFin = request('date_entree_fin');
+        $dateExpirationDebut = request('date_expiration_debut');
+        $dateExpirationFin = request('date_expiration_fin');
+        $prixMin = request('prix_min');
+        $prixMax = request('prix_max');
+        $trashed = request('trashed', false);
 
         $query = StockLot::forCompany($companyId)
-            ->with(['article:id,nom_article'])
+            ->with(['article:id,nom_article,nom_categorie'])
             ->search($q);
 
+        // Filtres de base
         if ($articleId) {
             $query->forArticle($articleId);
         }
@@ -45,6 +54,40 @@ class StockLotController extends Controller
             $days = request('days', 30);
             $query->whereBetween('date_expiration', [now(), now()->addDays($days)])
                   ->where('quantite_restante', '>', 0);
+        }
+
+        // Filtres avancés
+        if ($fournisseur) {
+            $query->where('fournisseur_lot', 'LIKE', "%{$fournisseur}%");
+        }
+
+        if ($dateEntreeDebut) {
+            $query->whereDate('date_entree', '>=', $dateEntreeDebut);
+        }
+
+        if ($dateEntreeFin) {
+            $query->whereDate('date_entree', '<=', $dateEntreeFin);
+        }
+
+        if ($dateExpirationDebut) {
+            $query->whereDate('date_expiration', '>=', $dateExpirationDebut);
+        }
+
+        if ($dateExpirationFin) {
+            $query->whereDate('date_expiration', '<=', $dateExpirationFin);
+        }
+
+        if ($prixMin) {
+            $query->where('prix_unitaire_achat', '>=', $prixMin);
+        }
+
+        if ($prixMax) {
+            $query->where('prix_unitaire_achat', '<=', $prixMax);
+        }
+
+        // Gestion de la corbeille
+        if ($trashed) {
+            $query->onlyTrashed();
         }
 
         $lots = $query->orderBy($sort, $dir)->paginate($perPage);
