@@ -202,13 +202,13 @@ export default function LaboratoryCategoryList() {
               {/* Actions */}
               <div className="mt-4 flex gap-2">
                 <Link
-                  to={`/stocks/categories/${category.id}/edit`}
+                  to={`/stocks/categories/${category.id}/modifier`}
                   className="flex-1 inline-flex items-center justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
                 >
                   Modifier
                 </Link>
                 <Link
-                  to={`/stocks/articles?category=${category.id}`}
+                  to={`/stocks/articles?categorie_id=${category.id}`}
                   className="flex-1 inline-flex items-center justify-center rounded-md bg-brand-500 px-4 py-2 text-sm font-medium text-white hover:bg-opacity-90"
                 >
                   Voir articles

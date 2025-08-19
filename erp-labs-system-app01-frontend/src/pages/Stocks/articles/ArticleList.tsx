@@ -36,17 +36,24 @@ export default function ArticleList() {
   useEffect(() => { const state = (location.state as { success?: string } | null) || null; if (state?.success) { setSuccessMessage(state.success); navigate(location.pathname, { replace: true, state: {} }); } }, [location.state, location.pathname, navigate]);
   useEffect(() => { if (!successMessage) return; const t = setTimeout(() => setSuccessMessage(null), 5000); return () => clearTimeout(t); }, [successMessage]);
 
+  // Lecture du categorie_id depuis l'URL
+  const urlParams = new URLSearchParams(location.search);
+  const categorieId = urlParams.get('categorie_id') || urlParams.get('category') || undefined;
+
   useEffect(() => {
     let mounted = true; setLoading(true);
     (async () => {
       try {
-        const url = showTrashed ? "/v1/stock/articles-trashed?per_page=100" : "/v1/stock/articles?per_page=100";
+        const base = showTrashed ? "/v1/stock/articles-trashed" : "/v1/stock/articles";
+        const params = new URLSearchParams({ per_page: '100' });
+        if (categorieId) params.append('categorie_id', String(categorieId));
+        const url = `${base}?${params.toString()}`;
         const res = await apiFetch<unknown>(url, { method: "GET" }, "company");
         if (mounted) setItems(extractArticles(res));
       } catch { /* noop */ } finally { if (mounted) setLoading(false); }
     })();
     return () => { mounted = false; };
-  }, [showTrashed]);
+  }, [showTrashed, categorieId]);
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
@@ -79,7 +86,12 @@ export default function ArticleList() {
 
         {successMessage && (<div className="mb-6"><Alert variant="success" title="Succès" message={successMessage} /></div>)}
 
-        <div className="mb-6"><Input type="text" placeholder="Rechercher par nom, code ou catégorie..." value={search} onChange={(e) => setSearch(e.target.value)} /></div>
+        <div className="mb-6">
+          {categorieId && (
+            <div className="mb-2 text-sm text-gray-600 dark:text-gray-400">Filtre: catégorie #{categorieId}</div>
+          )}
+          <Input type="text" placeholder="Rechercher par nom, code ou catégorie..." value={search} onChange={(e) => setSearch(e.target.value)} />
+        </div>
 
         <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03]">
           <div className="max-w-full overflow-x-auto">

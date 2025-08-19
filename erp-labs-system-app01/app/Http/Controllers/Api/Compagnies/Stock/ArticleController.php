@@ -19,8 +19,12 @@ class ArticleController extends Controller
         $perPage = (int) (request('per_page') ?? 15);
         $sort = request('sort', 'nom_article');
         $dir = request('dir', 'asc') === 'desc' ? 'desc' : 'asc';
+        $categoryId = request('categorie_id') ?? request('category_id');
 
         $articles = Article::where('company_id', $companyId)
+            ->when($categoryId, function ($query) use ($categoryId) {
+                $query->where('categorie_id', $categoryId);
+            })
             ->with(['category:id,nom_categorie'])
             ->search($q)
             ->orderBy($sort, $dir)
@@ -89,8 +93,12 @@ class ArticleController extends Controller
         $companyId = request()->user()->company_id;
         $q = request('q') ?? request('search');
         $perPage = (int) (request('per_page') ?? 15);
+        $categoryId = request('categorie_id') ?? request('category_id');
         $articles = Article::onlyTrashed()
             ->where('company_id', $companyId)
+            ->when($categoryId, function ($query) use ($categoryId) {
+                $query->where('categorie_id', $categoryId);
+            })
             ->search($q)
             ->orderBy('nom_article')
             ->paginate($perPage);
