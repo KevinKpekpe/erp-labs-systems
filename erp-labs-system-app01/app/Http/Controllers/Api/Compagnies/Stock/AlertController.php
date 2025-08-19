@@ -18,8 +18,13 @@ class AlertController extends Controller
         // Paramètres de base
         $q = $request->get('q') ?? $request->get('search');
         $perPage = (int) ($request->get('per_page') ?? 15);
-        $sort = $request->get('sort', 'date_alerte');
+        // Tri sécurisé (la colonne date_alerte n'existe pas en base)
+        $sort = $request->get('sort', 'created_at');
         $dir = $request->get('dir', 'desc') === 'asc' ? 'asc' : 'desc';
+        $allowedSorts = ['created_at', 'updated_at', 'date_traitement', 'priorite', 'statut'];
+        if (!in_array($sort, $allowedSorts, true)) {
+            $sort = 'created_at';
+        }
 
         // Filtres avancés
         $type = $request->get('type');
@@ -55,7 +60,8 @@ class AlertController extends Controller
         // Tri et pagination
         $alerts = $query->with([
                 'stock:id,article_id',
-                'stock.article:id,nom_article,nom_categorie',
+                'stock.article:id,nom_article,categorie_id',
+                'stock.article.category:id,nom_categorie,type_laboratoire,chaine_froid_critique',
                 'lot:id,code,numero_lot,date_expiration'
             ])
             ->orderBy($sort, $dir)
@@ -76,7 +82,8 @@ class AlertController extends Controller
 
         $alert->load([
             'stock:id,article_id',
-            'stock.article:id,nom_article,nom_categorie',
+            'stock.article:id,nom_article,categorie_id',
+            'stock.article.category:id,nom_categorie,type_laboratoire,chaine_froid_critique',
             'lot:id,code,numero_lot,date_expiration'
         ]);
 
@@ -144,7 +151,8 @@ class AlertController extends Controller
             ->where('company_id', $companyId)
             ->with([
                 'stock:id,article_id',
-                'stock.article:id,nom_article,nom_categorie',
+                'stock.article:id,nom_article,categorie_id',
+                'stock.article.category:id,nom_categorie,type_laboratoire,chaine_froid_critique',
                 'lot:id,code,numero_lot,date_expiration'
             ])
             ->search($q)
@@ -163,8 +171,8 @@ class AlertController extends Controller
 
         // 1. Alertes de stock critique
         $stocksCritiques = Stock::where('company_id', $companyId)
-            ->with(['article:id,nom_article,nom_categorie'])
-            ->whereColumn('quantite_actuelle', '<=', 'seuil_critique')
+            ->with(['article:id,nom_article,categorie_id','article.category:id,nom_categorie,type_laboratoire,chaine_froid_critique'])
+                ->whereColumn('quantite_actuelle', '<=', 'seuil_critique')
             ->get();
 
         foreach ($stocksCritiques as $stock) {
@@ -182,7 +190,11 @@ class AlertController extends Controller
                     'article' => [
                         'id' => $stock->article_id,
                         'nom_article' => $stock->article->nom_article ?? 'Article inconnu',
-                        'nom_categorie' => $stock->article->nom_categorie ?? 'Catégorie inconnue'
+                        'categorie' => [
+                            'nom_categorie' => optional($stock->article->category)->nom_categorie,
+                            'type_laboratoire' => optional($stock->article->category)->type_laboratoire,
+                            'chaine_froid_critique' => optional($stock->article->category)->chaine_froid_critique,
+                        ],
                     ]
                 ],
                 'created_at' => now()->toDateTimeString(),
@@ -194,7 +206,7 @@ class AlertController extends Controller
             ->where('quantite_restante', '>', 0)
             ->where('date_expiration', '<=', now()->addDays(30))
             ->where('date_expiration', '>', now())
-            ->with(['article:id,nom_article,nom_categorie'])
+            ->with(['article:id,nom_article,categorie_id','article.category:id,nom_categorie,type_laboratoire,chaine_froid_critique'])
             ->get();
 
         foreach ($lotsExpirationProche as $lot) {
@@ -225,7 +237,7 @@ class AlertController extends Controller
         $lotsExpires = StockLot::where('company_id', $companyId)
             ->where('quantite_restante', '>', 0)
             ->where('date_expiration', '<', now())
-            ->with(['article:id,nom_article,nom_categorie'])
+            ->with(['article:id,nom_article,categorie_id','article.category:id,nom_categorie,type_laboratoire,chaine_froid_critique'])
             ->get();
 
         foreach ($lotsExpires as $lot) {
@@ -236,7 +248,7 @@ class AlertController extends Controller
                 'titre' => 'Lot expiré',
                 'message' => "Le lot {$lot->code} a expiré le " . $lot->date_expiration->format('d/m/Y'),
                 'lot_id' => $lot->id,
-                'date_alerte' => now()->toDateTimeString(),
+                        'date_alerte' => now()->toDateTimeString(),
                 'statut' => StockAlert::STATUT_NOUVEAU,
                 'lot' => [
                     'id' => $lot->id,

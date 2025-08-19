@@ -80,14 +80,19 @@ export default function LaboratoryStockDashboard() {
       const categories = categoriesResp?.data?.data ?? [];
 
       // Calculs des métriques
-      const totalValeur = stocks.reduce((sum: number, stock: any) => 
-        sum + (stock.valeur_stock || 0), 0);
+      const totalValeur = stocks.reduce((sum: number, stock: any) => {
+        const raw = stock.valeur_stock ?? stock.valeurStock ?? 0;
+        const val = Number(raw);
+        return sum + (Number.isFinite(val) ? val : 0);
+      }, 0);
       
-      const stocksCritiques = stocks.filter((stock: any) => 
-        (stock.quantite_actuelle_lots || stock.quantite_actuelle) <= stock.seuil_critique).length;
+      const stocksCritiques = stocks.filter((stock: any) => {
+        const q = Number(stock.quantite_actuelle_lots ?? stock.quantite_actuelle ?? 0);
+        const seuil = Number(stock.seuil_critique ?? Infinity);
+        return Number.isFinite(seuil) ? q <= seuil : false;
+      }).length;
 
-      const stocksExpires = stocks.filter((stock: any) => 
-        stock.has_expired_lots || new Date(stock.date_expiration) < new Date()).length;
+      const stocksExpires = stocks.filter((stock: any) => Boolean(stock.has_expired_lots)).length;
 
       const stocksProcheExpiration = stocks.filter((stock: any) => 
         stock.has_near_expiration_lots).length;
@@ -118,6 +123,8 @@ export default function LaboratoryStockDashboard() {
         }] : []),
       ];
 
+      const expiredLotsCount = Number(lotsResp?.data?.total ?? lotsExpires.length);
+
       const dashboardData: DashboardData = {
         stocks_overview: {
           total_stocks: stocks.length,
@@ -129,8 +136,7 @@ export default function LaboratoryStockDashboard() {
         lots_overview: {
           total_lots: stocks.reduce((sum: number, stock: any) => 
             sum + (stock.lots_overview?.nombre_lots || 0), 0),
-          lots_expires: stocks.reduce((sum: number, stock: any) => 
-            sum + (stock.lots_overview?.lots_expires || 0), 0),
+          lots_expires: expiredLotsCount,
           lots_proche_expiration: stocks.reduce((sum: number, stock: any) => 
             sum + (stock.lots_overview?.lots_proche_expiration || 0), 0),
           chaine_froid_critique: categories.filter((cat: any) => cat.chaine_froid_critique).length,
@@ -239,7 +245,7 @@ export default function LaboratoryStockDashboard() {
                           </span>
                           {alerte.type === 'expiration' && (
                             <Link 
-                              to="/stocks/lots/dashboard" 
+                              to="/stocks/lots/expired" 
                               className="text-sm underline hover:no-underline"
                             >
                               Voir les lots expirés
@@ -343,7 +349,7 @@ export default function LaboratoryStockDashboard() {
                 </div>
                 <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
                   <Link 
-                    to="/stocks/categories/laboratory" 
+                    to="/stocks/categories" 
                     className="text-sm text-brand-600 dark:text-brand-400 hover:underline"
                   >
                     Gérer les catégories →
@@ -372,7 +378,7 @@ export default function LaboratoryStockDashboard() {
                     ))}
                     <div className="pt-2">
                       <Link 
-                        to="/stocks/lots/dashboard" 
+                        to="/stocks/lots/expired" 
                         className="text-sm text-brand-600 dark:text-brand-400 hover:underline"
                       >
                         Voir tous les lots expirés →
@@ -390,7 +396,7 @@ export default function LaboratoryStockDashboard() {
               <h3 className="text-lg font-semibold mb-4 text-blue-800 dark:text-blue-400">⚡ Actions rapides</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <Link
-                  to="/stocks/categories/laboratory/new"
+                  to="/stocks/categories/nouveau"
                   className="p-4 bg-white rounded-md border border-blue-200 hover:border-blue-300 dark:bg-gray-800 dark:border-blue-700 text-center"
                 >
                   <BeakerIcon className="h-8 w-8 text-blue-500 mx-auto mb-2" />

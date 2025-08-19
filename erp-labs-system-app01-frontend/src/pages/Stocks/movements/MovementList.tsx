@@ -29,6 +29,12 @@ interface StockMovement {
     numero_lot: string;
     date_expiration?: string;
   };
+  stock_lot?: {
+    id: number;
+    code: string;
+    numero_lot: string;
+    date_expiration?: string;
+  };
   created_at: string;
   deleted_at?: string;
 }
@@ -380,11 +386,11 @@ export default function MovementList() {
                         {movement.stock?.article?.nom_article || 'N/A'}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                        {movement.stockLot ? (
+                        {movement.stockLot || movement.stock_lot ? (
                           <div>
-                            <div>{movement.stockLot.code}</div>
+                            <div>{(movement.stockLot || movement.stock_lot)?.code}</div>
                             <div className="text-xs text-gray-500 dark:text-gray-400">
-                              {movement.stockLot.numero_lot}
+                              {(movement.stockLot || movement.stock_lot)?.numero_lot}
                             </div>
                           </div>
                         ) : (

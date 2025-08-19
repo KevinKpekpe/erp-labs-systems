@@ -94,8 +94,10 @@ export default function AlertsManagement() {
       // Appel API réel au backend
       const response = await apiFetch(`/v1/stock/alerts?${params.toString()}`, {}, 'company');
       
-      if (response.success && response.data) {
-        setAlerts(response.data.data || []);
+      if (response && typeof response === 'object') {
+        const serverData = (response as any).data ?? response;
+        const list = Array.isArray(serverData?.data) ? serverData.data : (Array.isArray(serverData) ? serverData : []);
+        setAlerts(list);
       } else {
         setAlerts([]);
       }

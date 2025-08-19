@@ -32,7 +32,7 @@ import AddMedecin from "./pages/Medecins/AddMedecin";
 import EditMedecin from "./pages/Medecins/EditMedecin";
 import MedecinDetails from "./pages/Medecins/MedecinDetails";
 import StocksDashboard from "./pages/Stocks/StocksDashboard";
-import { CategoryArticleList, CategoryArticleCreate, CategoryArticleEdit, LaboratoryCategoryList, LaboratoryCategoryCreate } from "./pages/Stocks/categoryArticle";
+import { CategoryArticleCreate, CategoryArticleEdit, LaboratoryCategoryList } from "./pages/Stocks/categoryArticle";
 import { ArticleList, ArticleCreate, ArticleEdit } from "./pages/Stocks/articles";
 import { StockList, StockCreate, StockEdit, LaboratoryStockCreate } from "./pages/Stocks/stocks";
 import { StockLotsList, StockLotCreate, StockConsume, FifoDashboard, StockLotsTrashed, ExpiredLotsManagement } from "./pages/Stocks/lots";
@@ -110,13 +110,10 @@ export default function App() {
               {/* Gestion des Stocks */}
               <Route path="/stocks" element={<ProtectedRoute kind="company" requiredPermission={{ action: "LIST", module: "STOCK" }}><StocksDashboard /></ProtectedRoute>} />
               <Route path="/stocks/laboratory" element={<ProtectedRoute kind="company" requiredPermission={{ action: "LIST", module: "STOCK" }}><LaboratoryStockDashboard /></ProtectedRoute>} />
-              <Route path="/stocks/categories" element={<ProtectedRoute kind="company" requiredPermission={{ action: "LIST", module: "STOCK" }}><CategoryArticleList /></ProtectedRoute>} />
+              <Route path="/stocks/categories" element={<ProtectedRoute kind="company" requiredPermission={{ action: "LIST", module: "STOCK" }}><LaboratoryCategoryList /></ProtectedRoute>} />
               <Route path="/stocks/categories/nouveau" element={<ProtectedRoute kind="company" requiredPermission={{ action: "CREATE", module: "STOCK" }}><CategoryArticleCreate /></ProtectedRoute>} />
               <Route path="/stocks/categories/:id/modifier" element={<ProtectedRoute kind="company" requiredPermission={{ action: "UPDATE", module: "STOCK" }}><CategoryArticleEdit /></ProtectedRoute>} />
-              
-              {/* Nouvelles routes pour les catégories de laboratoire */}
-              <Route path="/stocks/categories/laboratory" element={<ProtectedRoute kind="company" requiredPermission={{ action: "LIST", module: "STOCK" }}><LaboratoryCategoryList /></ProtectedRoute>} />
-              <Route path="/stocks/categories/laboratory/new" element={<ProtectedRoute kind="company" requiredPermission={{ action: "CREATE", module: "STOCK" }}><LaboratoryCategoryCreate /></ProtectedRoute>} />
+
               <Route path="/stocks/articles" element={<ProtectedRoute kind="company" requiredPermission={{ action: "LIST", module: "STOCK" }}><ArticleList /></ProtectedRoute>} />
               <Route path="/stocks/articles/nouveau" element={<ProtectedRoute kind="company" requiredPermission={{ action: "CREATE", module: "STOCK" }}><ArticleCreate /></ProtectedRoute>} />
               <Route path="/stocks/articles/:id/modifier" element={<ProtectedRoute kind="company" requiredPermission={{ action: "UPDATE", module: "STOCK" }}><ArticleEdit /></ProtectedRoute>} />

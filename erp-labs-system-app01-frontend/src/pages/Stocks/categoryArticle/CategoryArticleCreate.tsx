@@ -88,6 +88,71 @@ export default function CategoryArticleCreate() {
               <Input id="nom_categorie" type="text" placeholder="Ex: Réactifs" value={formData.nom_categorie} onChange={(e) => handleInputChange('nom_categorie', e.target.value)} className={error ? "border-red-500" : ""} />
               {error && <p className="mt-1 text-sm text-red-500">{error}</p>}
             </div>
+
+            {/* Type laboratoire (optionnel) */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Type</label>
+              <select
+                value={formData.type_laboratoire}
+                onChange={(e) => handleInputChange('type_laboratoire', e.target.value)}
+                className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:ring-brand-500 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+              >
+                <option value="">-- Sélectionner --</option>
+                <option value="Réactifs">Réactifs</option>
+                <option value="Consommables">Consommables</option>
+                <option value="Équipements">Équipements</option>
+                <option value="Contrôles">Contrôles</option>
+                <option value="Références">Références</option>
+                <option value="Kits">Kits</option>
+              </select>
+            </div>
+
+            {/* Conditions de stockage (optionnel) */}
+            <div>
+              <label htmlFor="conditions" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Conditions de stockage</label>
+              <textarea
+                id="conditions"
+                rows={3}
+                placeholder="Ex: À l'abri de la lumière, éviter l'humidité"
+                value={formData.conditions_stockage_requises}
+                onChange={(e) => handleInputChange('conditions_stockage_requises', e.target.value)}
+                className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:ring-brand-500 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+              />
+            </div>
+
+            {/* Températures & humidité */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Température min (°C)</label>
+                <Input type="number" placeholder="Ex: 2" value={formData.temperature_stockage_min} onChange={(e) => handleInputChange('temperature_stockage_min', e.target.value)} />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Température max (°C)</label>
+                <Input type="number" placeholder="Ex: 8" value={formData.temperature_stockage_max} onChange={(e) => handleInputChange('temperature_stockage_max', e.target.value)} />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Humidité max (%)</label>
+                <Input type="number" placeholder="Ex: 65" value={formData.humidite_max} onChange={(e) => handleInputChange('humidite_max', e.target.value)} />
+              </div>
+            </div>
+
+            {/* Sensibilités */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <label className="inline-flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+                <input type="checkbox" checked={formData.sensible_lumiere} onChange={(e) => handleInputChange('sensible_lumiere', e.target.checked)} className="h-4 w-4 rounded border-gray-300 text-brand-600 focus:ring-brand-500 dark:border-gray-700 dark:bg-gray-800" />
+                Sensible à la lumière
+              </label>
+              <label className="inline-flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+                <input type="checkbox" checked={formData.chaine_froid_critique} onChange={(e) => handleInputChange('chaine_froid_critique', e.target.checked)} className="h-4 w-4 rounded border-gray-300 text-brand-600 focus:ring-brand-500 dark:border-gray-700 dark:bg-gray-800" />
+                Chaîne du froid critique
+              </label>
+            </div>
+
+            {/* Délai d'alerte */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Délai d’alerte avant expiration (jours)</label>
+              <Input type="number" placeholder="Ex: 30" value={formData.delai_alerte_expiration} onChange={(e) => handleInputChange('delai_alerte_expiration', e.target.value)} />
+            </div>
             <div className="flex justify-end space-x-3 pt-6">
               <Link to="/stocks/categories" className="inline-flex items-center justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700">Annuler</Link>
               <button type="submit" disabled={submitting} className="inline-flex items-center justify-center rounded-md bg-brand-500 px-4 py-2 text-sm font-medium text-white hover:bg-opacity-90 disabled:opacity-50 disabled:cursor-not-allowed">{submitting ? (<><div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>Création...</>) : (<><CheckLineIcon className="mr-2 h-4 w-4" />Créer</>)}</button>

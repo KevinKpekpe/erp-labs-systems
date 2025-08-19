@@ -101,13 +101,13 @@ export default function LaboratoryCategoryList() {
 
   return (
     <>
-      <Helmet><title>Catégories laboratoire | ClinLab ERP</title></Helmet>
+      <Helmet><title>Catégories d'articles | ClinLab ERP</title></Helmet>
       <div className="mx-auto max-w-screen-2xl p-4 md:p-6 2xl:p-10">
         <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <h2 className="text-title-md2 font-semibold text-black dark:text-white">Catégories laboratoire</h2>
+          <h2 className="text-title-md2 font-semibold text-black dark:text-white">Catégories d'articles</h2>
           <div className="flex items-center gap-3">
             <Link 
-              to="/stocks/categories/laboratory/new" 
+              to="/stocks/categories/nouveau" 
               className="inline-flex items-center justify-center rounded-md bg-brand-500 px-6 py-2.5 text-center font-medium text-white hover:bg-opacity-90"
             >
               <PlusIcon className="mr-2 h-4 w-4" />
@@ -221,7 +221,7 @@ export default function LaboratoryCategoryList() {
             <div className="col-span-full text-center py-8">
               <p className="text-gray-500 dark:text-gray-400">Aucune catégorie de laboratoire trouvée</p>
               <Link 
-                to="/stocks/categories/laboratory/new" 
+                to="/stocks/categories/nouveau" 
                 className="mt-4 inline-flex items-center justify-center rounded-md bg-brand-500 px-6 py-2.5 text-center font-medium text-white hover:bg-opacity-90"
               >
                 <PlusIcon className="mr-2 h-4 w-4" />

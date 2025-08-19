@@ -98,7 +98,7 @@ const baseNavItems: NavItem[] = [
       { name: "Dashboard FIFO", path: "/stocks/lots/dashboard", requiredPermission: { action: "LIST", module: "STOCK" } },
       { name: "Stocks", path: "/stocks/stocks", requiredPermission: { action: "LIST", module: "STOCK" } },
       { name: "Articles en stock", path: "/stocks/articles", requiredPermission: { action: "LIST", module: "STOCK" } },
-      { name: "Catégories laboratoire", path: "/stocks/categories/laboratory", requiredPermission: { action: "LIST", module: "STOCK" } },
+      { name: "Catégories d'articles", path: "/stocks/categories", requiredPermission: { action: "LIST", module: "STOCK" } },
       { name: "Corbeille", path: "/stocks/lots-trashed", requiredPermission: { action: "LIST", module: "STOCK" } },
       { name: "Lots expirés", path: "/stocks/lots/expired", requiredPermission: { action: "LIST", module: "STOCK" } },
       { name: "Mouvements", path: "/stocks/mouvements", requiredPermission: { action: "LIST", module: "STOCK" } },
