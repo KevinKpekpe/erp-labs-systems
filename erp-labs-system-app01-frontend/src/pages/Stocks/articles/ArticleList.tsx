@@ -8,19 +8,35 @@ import { Link, useLocation, useNavigate } from "react-router";
 import { apiFetch } from "../../../lib/apiClient";
 
 interface ArticleRow { id: number; code: string; nom_article: string; categorie?: string | null; prix_unitaire: number; unite_mesure?: string | null; fournisseur?: string | null }
-function isObject(v: unknown): v is Record<string, unknown> { return typeof v === 'object' && v !== null; }
+function isRecord(v: unknown): v is Record<string, unknown> { return typeof v === 'object' && v !== null; }
 function extractArticles(resp: unknown): ArticleRow[] {
-  const root = (resp as { data?: unknown })?.data ?? resp;
-  const arr = isObject(root) && Array.isArray((root as Record<string, unknown>).data) ? (root as Record<string, unknown>).data as unknown[] : Array.isArray(root) ? (root as unknown[]) : [];
-  return arr.filter(isObject).map((r) => ({
-    id: Number((r as any).id ?? 0),
-    code: String((r as any).code ?? ''),
-    nom_article: String((r as any).nom_article ?? ''),
-    categorie: String(((r as any).category?.nom_categorie) ?? ''),
-    prix_unitaire: Number((r as any).prix_unitaire ?? 0),
-    unite_mesure: String((r as any).unite_mesure ?? ''),
-    fournisseur: String((r as any).fournisseur ?? ''),
-  }));
+  const maybeRoot = (resp as { data?: unknown })?.data ?? resp;
+  let arr: unknown[] = [];
+  if (Array.isArray(maybeRoot)) arr = maybeRoot;
+  else if (isRecord(maybeRoot)) {
+    const inner = (maybeRoot as Record<string, unknown>)["data"];
+    if (Array.isArray(inner)) arr = inner;
+  }
+  const toArticle = (r: unknown): ArticleRow | null => {
+    if (!isRecord(r)) return null;
+    const categoryVal = r["category"];
+    let categorie: string | null = null;
+    if (isRecord(categoryVal)) {
+      const name = categoryVal["nom_categorie"];
+      if (typeof name === 'string' || typeof name === 'number') categorie = String(name);
+    }
+    const idVal = r["id"]; const codeVal = r["code"]; const nomVal = r["nom_article"]; const prixVal = r["prix_unitaire"]; const uniteVal = r["unite_mesure"]; const fournVal = r["fournisseur"];
+    return {
+      id: typeof idVal === 'number' || typeof idVal === 'string' ? Number(idVal) : 0,
+      code: typeof codeVal === 'string' || typeof codeVal === 'number' ? String(codeVal) : '',
+      nom_article: typeof nomVal === 'string' ? nomVal : String(nomVal ?? ''),
+      categorie,
+      prix_unitaire: typeof prixVal === 'number' || typeof prixVal === 'string' ? Number(prixVal) : 0,
+      unite_mesure: typeof uniteVal === 'string' ? uniteVal : uniteVal != null ? String(uniteVal) : '',
+      fournisseur: typeof fournVal === 'string' ? fournVal : fournVal != null ? String(fournVal) : '',
+    };
+  };
+  return arr.map(toArticle).filter((x): x is ArticleRow => x !== null);
 }
 
 export default function ArticleList() {
@@ -28,6 +44,7 @@ export default function ArticleList() {
   const [loading, setLoading] = useState(false);
   const [showTrashed, setShowTrashed] = useState(false);
   const [search, setSearch] = useState("");
+  const [categories, setCategories] = useState<{ id: number; nom: string }[]>([]);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean; item: ArticleRow | null; hard?: boolean }>({ isOpen: false, item: null, hard: false });
 
@@ -40,6 +57,47 @@ export default function ArticleList() {
   const urlParams = new URLSearchParams(location.search);
   const categorieId = urlParams.get('categorie_id') || urlParams.get('category') || undefined;
 
+  // Charger les catégories pour le filtre
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const res = await apiFetch<unknown>(`/v1/stock/categories?per_page=200`, { method: 'GET' }, 'company');
+        const maybeRoot = (res as { data?: unknown })?.data ?? res;
+        let arr: unknown[] = [];
+        if (Array.isArray(maybeRoot)) arr = maybeRoot;
+        else if (isRecord(maybeRoot)) {
+          const inner = (maybeRoot as Record<string, unknown>)["data"];
+          if (Array.isArray(inner)) arr = inner;
+        }
+        const mapped = arr.map((c) => {
+          if (!isRecord(c)) return null;
+          const idVal = c["id"]; const nameVal = c["nom_categorie"];
+          return {
+            id: typeof idVal === 'number' || typeof idVal === 'string' ? Number(idVal) : 0,
+            nom: typeof nameVal === 'string' || typeof nameVal === 'number' ? String(nameVal) : '',
+          };
+        }).filter((v): v is { id: number; nom: string } => v !== null);
+        if (mounted) setCategories(mapped);
+      } catch { /* noop */ }
+    })();
+    return () => { mounted = false; };
+  }, []);
+
+  // Debounce de la recherche
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(search), 350);
+    return () => clearTimeout(t);
+  }, [search]);
+
+  const activeFiltersCount = useMemo(() => {
+    let count = 0;
+    if (debouncedSearch) count += 1;
+    if (categorieId) count += 1;
+    return count;
+  }, [debouncedSearch, categorieId]);
+
   useEffect(() => {
     let mounted = true; setLoading(true);
     (async () => {
@@ -47,18 +105,17 @@ export default function ArticleList() {
         const base = showTrashed ? "/v1/stock/articles-trashed" : "/v1/stock/articles";
         const params = new URLSearchParams({ per_page: '100' });
         if (categorieId) params.append('categorie_id', String(categorieId));
+        if (debouncedSearch) params.append('q', debouncedSearch);
         const url = `${base}?${params.toString()}`;
         const res = await apiFetch<unknown>(url, { method: "GET" }, "company");
         if (mounted) setItems(extractArticles(res));
       } catch { /* noop */ } finally { if (mounted) setLoading(false); }
     })();
     return () => { mounted = false; };
-  }, [showTrashed, categorieId]);
+  }, [showTrashed, categorieId, debouncedSearch]);
 
-  const filtered = useMemo(() => {
-    const q = search.toLowerCase();
-    return items.filter(a => a.nom_article.toLowerCase().includes(q) || a.code.toLowerCase().includes(q) || (a.categorie ?? '').toLowerCase().includes(q));
-  }, [items, search]);
+  // Le filtrage principal est maintenant côté API via q & categorie_id
+  const filtered = useMemo(() => items, [items]);
 
   const openDelete = (item: ArticleRow, hard = false) => setDeleteModal({ isOpen: true, item, hard });
   const closeDelete = () => setDeleteModal({ isOpen: false, item: null, hard: false });
@@ -86,14 +143,57 @@ export default function ArticleList() {
 
         {successMessage && (<div className="mb-6"><Alert variant="success" title="Succès" message={successMessage} /></div>)}
 
-        <div className="mb-6">
-          {categorieId && (
-            <div className="mb-2 text-sm text-gray-600 dark:text-gray-400">Filtre: catégorie #{categorieId}</div>
-          )}
-          <Input type="text" placeholder="Rechercher par nom, code ou catégorie..." value={search} onChange={(e) => setSearch(e.target.value)} />
+        <div className="mb-6 rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03]">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+              Filtres {activeFiltersCount > 0 && (
+                <span className="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-brand-100 text-brand-800 dark:bg-brand-900/20 dark:text-brand-400">
+                  {activeFiltersCount}
+                </span>
+              )}
+            </h3>
+            {activeFiltersCount > 0 && (
+              <button
+                onClick={() => {
+                  setSearch('');
+                  const params = new URLSearchParams(location.search);
+                  params.delete('categorie_id');
+                  params.delete('category');
+                  navigate({ pathname: location.pathname, search: params.toString() });
+                }}
+                className="text-sm text-brand-600 hover:text-brand-700 dark:text-brand-400 dark:hover:text-brand-300"
+              >
+                Effacer les filtres
+              </button>
+            )}
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Recherche</label>
+              <Input type="text" placeholder="Rechercher par nom ou code..." value={search} onChange={(e) => setSearch(e.target.value)} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Catégorie</label>
+              <select
+                className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:ring-brand-500 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                value={categorieId ?? ''}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  const params = new URLSearchParams(location.search);
+                  if (value) params.set('categorie_id', value); else { params.delete('categorie_id'); params.delete('category'); }
+                  navigate({ pathname: location.pathname, search: params.toString() });
+                }}
+              >
+                <option value="">Toutes les catégories</option>
+                {categories.map(c => (
+                  <option key={c.id} value={c.id}>{c.nom}</option>
+                ))}
+              </select>
+            </div>
+          </div>
         </div>
 
-        <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03]">
+        <div className="rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03]">
           <div className="max-w-full overflow-x-auto">
             <table className="w-full table-auto">
               <thead>
