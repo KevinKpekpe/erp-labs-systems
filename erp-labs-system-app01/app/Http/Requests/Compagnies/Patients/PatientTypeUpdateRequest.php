@@ -17,7 +17,9 @@ class PatientTypeUpdateRequest extends FormRequest
         return [
             'nom_type' => [
                 'required','string','max:100',
-                Rule::unique('type_patients','nom_type')->ignore($ignoreId)->where(fn($q) => $q->where('company_id', $companyId)),
+                Rule::unique('type_patients','nom_type')
+                    ->ignore($ignoreId)
+                    ->where(fn($q) => $q->where('company_id', $companyId)->whereNull('deleted_at')),
             ],
             'description' => ['sometimes','string','nullable'],
         ];

@@ -20,6 +20,9 @@ class CategoryController extends Controller
         $dir = request('dir', 'asc') === 'desc' ? 'desc' : 'asc';
 
         $categories = CategoryArticle::where('company_id', $companyId)
+            ->withCount(['articles as articles_count' => function ($q) use ($companyId) {
+                $q->where('company_id', $companyId);
+            }])
             ->search($q)
             ->orderBy($sort, $dir)
             ->paginate($perPage);
