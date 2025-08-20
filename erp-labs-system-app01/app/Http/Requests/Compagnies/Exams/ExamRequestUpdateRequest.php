@@ -12,6 +12,7 @@ class ExamRequestUpdateRequest extends FormRequest
     {
         return [
             'statut_demande' => ['sometimes','in:En attente,En cours,Terminée,Annulée'],
+            'methode_sortie' => ['sometimes','in:fifo,fefo'],
             'note' => ['sometimes','string','nullable'],
         ];
     }

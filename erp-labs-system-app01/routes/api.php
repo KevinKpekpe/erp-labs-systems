@@ -229,6 +229,15 @@ Route::prefix('v1')->group(function () {
 		Route::get('/exam-requests/{examRequest}', [ExamRequestController::class, 'show'])->middleware('can.permission:LIST,DEMANDE_EXAMEN');
 		Route::put('/exam-requests/{examRequest}', [ExamRequestController::class, 'update'])->middleware('can.permission:UPDATE,DEMANDE_EXAMEN');
 		Route::delete('/exam-requests/{examRequest}', [ExamRequestController::class, 'destroy'])->middleware('can.permission:DELETE,DEMANDE_EXAMEN');
+		// Update complet (métadonnées + examens)
+		Route::post('/exam-requests/{examRequest}/full-update', [ExamRequestController::class, 'fullUpdate'])->middleware('can.permission:UPDATE,DEMANDE_EXAMEN');
+		// Détails: mise à jour résultat et suppression
+		Route::post('/exam-requests/{examRequest}/details/{detail}', [ExamRequestController::class, 'updateDetail'])->middleware('can.permission:UPDATE,DEMANDE_EXAMEN');
+		Route::delete('/exam-requests/{examRequest}/details/{detail}', [ExamRequestController::class, 'destroyDetail'])->middleware('can.permission:DELETE,DEMANDE_EXAMEN');
+		// Corbeille / restore / force
+		Route::get('/exam-requests-trashed', [ExamRequestController::class, 'trashed'])->middleware('can.permission:LIST,DEMANDE_EXAMEN');
+		Route::post('/exam-requests/{id}/restore', [ExamRequestController::class, 'restore'])->middleware('can.permission:UPDATE,DEMANDE_EXAMEN');
+		Route::delete('/exam-requests/{id}/force', [ExamRequestController::class, 'forceDelete'])->middleware('can.permission:DELETE,DEMANDE_EXAMEN');
 		Route::get('/patients/{patient}/exam-requests', [ExamRequestController::class, 'byPatient'])->middleware('can.permission:LIST,DEMANDE_EXAMEN');
 		Route::get('/doctors/{doctor}/exam-requests', [ExamRequestController::class, 'byDoctor'])->middleware('can.permission:LIST,DEMANDE_EXAMEN');
 

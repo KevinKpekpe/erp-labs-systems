@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Api\Compagnies\Exams;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Compagnies\Exams\ExamRequestStoreRequest;
 use App\Http\Requests\Compagnies\Exams\ExamRequestUpdateRequest;
+use App\Http\Requests\Compagnies\Exams\ExamRequestFullUpdateRequest;
+use App\Http\Requests\Compagnies\Exams\ExamRequestDetailUpdateRequest;
 use App\Models\Doctor;
 use App\Models\Exam;
 use App\Models\ExamRequest;
@@ -13,13 +15,16 @@ use App\Models\Patient;
 use App\Models\Invoice;
 use App\Models\Stock;
 use App\Models\StockMovement;
+use App\Models\StockLot;
 use App\Support\StockAlertService;
 use App\Support\ApiResponse;
 use App\Support\CodeGenerator;
 use Illuminate\Support\Facades\DB;
+use App\Services\FifoStockService;
 
 class ExamRequestController extends Controller
 {
+    public function __construct(private FifoStockService $fifoService) {}
     private function computeRequiredArticles(int $companyId, array $examIds): array
     {
         if (empty($examIds)) { return []; }
@@ -170,61 +175,33 @@ class ExamRequestController extends Controller
                     throw new \App\Exceptions\ApiException('exam_requests.invalid_transition', 422, 'INVALID_STATUS_TRANSITION');
                 }
 
-                // Consommation stock auto sur passage "En cours"
+                // Consommation stock auto par lots lors du passage "En cours"
                 if ($next === 'En cours') {
                     $companyId = $examRequest->company_id;
                     $details = $examRequest->details()->get(['examen_id']);
                     $examIds = $details->pluck('examen_id')->all();
                     $requiredByArticle = $this->computeRequiredArticles($companyId, $examIds);
 
-                    // Verrouiller et vérifier
-                    $articleIds = array_keys($requiredByArticle);
-                    if (!empty($articleIds)) {
-                        $stocks = Stock::where('company_id', $companyId)
-                            ->whereIn('article_id', $articleIds)
-                            ->lockForUpdate()
-                            ->get()
-                            ->keyBy('article_id');
-
-                        $insufficient = [];
-                        foreach ($requiredByArticle as $articleId => $requiredQty) {
-                            $stock = $stocks->get($articleId);
-                            $available = $stock?->quantite_actuelle ?? 0;
-                            if ($available < $requiredQty) {
-                                $insufficient[] = [
-                                    'article_id' => $articleId,
-                                    'required' => $requiredQty,
-                                    'available' => $available,
-                                ];
+                    // Éviter double-déduction
+                    $existingMovements = StockMovement::where('company_id', $companyId)
+                        ->where('demande_id', $examRequest->id)
+                        ->count();
+                    if ($existingMovements === 0) {
+                        $methode = request('methode_sortie', 'fifo');
+                        $options = [
+                            'date_mouvement' => now(),
+                            'motif' => 'Consommation pour demande '.$examRequest->code,
+                            'demande_id' => $examRequest->id,
+                        ];
+                        foreach ($requiredByArticle as $articleId => $qty) {
+                            $stock = Stock::where('company_id', $companyId)->where('article_id', $articleId)->first();
+                            if (!$stock) {
+                                throw new \App\Exceptions\ApiException('stock.not_found', 422, 'STOCK_NOT_FOUND');
                             }
-                        }
-                        if (!empty($insufficient)) {
-                            throw new \App\Exceptions\ApiException('stock.insufficient', 422, 'STOCK_UNAVAILABLE', ['articles' => $insufficient]);
-                        }
-
-                        // Éviter double-déduction: vérifier s'il existe déjà des mouvements pour cette demande
-                        $existingMovements = StockMovement::where('company_id', $companyId)
-                            ->where('demande_id', $examRequest->id)
-                            ->count();
-                        if ($existingMovements === 0) {
-                            foreach ($requiredByArticle as $articleId => $qty) {
-                                $stock = $stocks->get($articleId);
-                                $stock->quantite_actuelle -= $qty;
-                                $stock->save();
-
-                                StockMovement::create([
-                                    'company_id' => $companyId,
-                                    'code' => CodeGenerator::generate('mouvement_stocks', $companyId, 'MOV'),
-                                    'stock_id' => $stock->id,
-                                    'date_mouvement' => now(),
-                                    'quantite' => (int) ceil($qty),
-                                    'type_mouvement' => 'Sortie',
-                                    'demande_id' => $examRequest->id,
-                                    'motif' => 'Consommation pour demande '.$examRequest->code,
-                                ]);
-
-                                // Alerte si seuil atteint
-                                StockAlertService::evaluateAndCreate($stock);
+                            if ($methode === 'fefo') {
+                                $this->fifoService->processFefoExit($stock, (int) ceil($qty), $options);
+                            } else {
+                                $this->fifoService->processFifoExit($stock, (int) ceil($qty), $options);
                             }
                         }
                     }
@@ -299,7 +276,7 @@ class ExamRequestController extends Controller
             return ApiResponse::error('exam_requests.cannot_cancel_finished', 422, 'CANNOT_CANCEL');
         }
         if ($examRequest->statut_demande === 'En cours') {
-            // Reprise de stock: reconstituer quantités déduites pour cette demande
+            // Reprise de stock: reconstituer quantités des lots pour cette demande
             DB::transaction(function () use ($examRequest) {
                 $companyId = $examRequest->company_id;
                 $movements = StockMovement::where('company_id', $companyId)
@@ -308,19 +285,132 @@ class ExamRequestController extends Controller
                     ->lockForUpdate()
                     ->get();
                 foreach ($movements as $mov) {
+                    if ($mov->stock_lot_id) {
+                        $lot = StockLot::where('company_id', $companyId)->lockForUpdate()->find($mov->stock_lot_id);
+                        if ($lot) {
+                            $lot->quantite_restante += (int) $mov->quantite;
+                            $lot->save();
+                        }
+                    }
                     $stock = Stock::where('company_id', $companyId)->lockForUpdate()->find($mov->stock_id);
                     if ($stock) {
-                        $stock->quantite_actuelle += (int) $mov->quantite;
+                        $stock->quantite_actuelle = $stock->quantite_actuelle_calculee;
                         $stock->save();
                     }
                 }
-                // Optionnel: marquer ces mouvements comme annulés (soft delete)
+                // Marquer ces mouvements comme annulés (soft delete)
                 StockMovement::whereIn('id', $movements->pluck('id'))->delete();
             });
         }
         $examRequest->update(['statut_demande' => 'Annulée']);
         $examRequest->delete();
         return ApiResponse::success(null, 'exam_requests.cancelled');
+    }
+
+    // Mise à jour complète (métadonnées et liste d'examens)
+    public function fullUpdate(ExamRequestFullUpdateRequest $request, ExamRequest $examRequest)
+    {
+        $this->authorizeRequest($examRequest);
+        $data = $request->validated();
+        $companyId = $examRequest->company_id;
+
+        return DB::transaction(function () use ($examRequest, $data, $companyId) {
+            $payload = [];
+            foreach (['date_demande','note'] as $f) {
+                if (array_key_exists($f, $data)) { $payload[$f] = $data[$f]; }
+            }
+
+            if (array_key_exists('patient_id', $data)) {
+                $patient = Patient::where('company_id', $companyId)->findOrFail($data['patient_id']);
+                $payload['patient_id'] = $patient->id;
+            }
+            if (array_key_exists('medecin_prescripteur_id', $data)) {
+                $medecinId = null;
+                if (!empty($data['medecin_prescripteur_id'])) {
+                    $medecinId = Doctor::where('company_id', $companyId)->findOrFail($data['medecin_prescripteur_id'])->id;
+                }
+                $payload['medecin_prescripteur_id'] = $medecinId;
+            }
+            if (array_key_exists('medecin_prescripteur_externe_nom', $data)) {
+                $payload['medecin_prescripteur_externe_nom'] = $data['medecin_prescripteur_externe_nom'];
+            }
+            if (array_key_exists('medecin_prescripteur_externe_prenom', $data)) {
+                $payload['medecin_prescripteur_externe_prenom'] = $data['medecin_prescripteur_externe_prenom'];
+            }
+
+            if (!empty($payload)) { $examRequest->update($payload); }
+
+            if (array_key_exists('examens', $data)) {
+                DB::table('demande_examen_details')
+                    ->where('company_id', $companyId)
+                    ->where('demande_id', $examRequest->id)
+                    ->delete();
+
+                $rows = [];
+                foreach ($data['examens'] as $examId) {
+                    $exam = Exam::where('company_id', $companyId)->findOrFail($examId);
+                    $rows[] = [
+                        'company_id' => $companyId,
+                        'code' => CodeGenerator::generate('demande_examen_details', $companyId, 'RQD'),
+                        'demande_id' => $examRequest->id,
+                        'examen_id' => $exam->id,
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ];
+                }
+                if (!empty($rows)) { DB::table('demande_examen_details')->insert($rows); }
+            }
+
+            return ApiResponse::success($examRequest->fresh()->load(['details','patient:id,nom,postnom,prenom','medecin:id,nom,prenom']), 'exam_requests.updated');
+        });
+    }
+
+    // Mise à jour d'un détail (résultat)
+    public function updateDetail(ExamRequestDetailUpdateRequest $request, ExamRequest $examRequest, ExamRequestDetail $detail)
+    {
+        $this->authorizeRequest($examRequest);
+        if ($detail->demande_id !== $examRequest->id) { abort(404); }
+        $data = $request->validated();
+        $detail->update($data);
+        return ApiResponse::success($detail->fresh(), 'exam_requests.detail.updated');
+    }
+
+    // Suppression d'un détail
+    public function destroyDetail(ExamRequest $examRequest, ExamRequestDetail $detail)
+    {
+        $this->authorizeRequest($examRequest);
+        if ($detail->demande_id !== $examRequest->id) { abort(404); }
+        $detail->delete();
+        return ApiResponse::success(null, 'exam_requests.detail.deleted');
+    }
+
+    // Corbeille / restore / force delete pour les demandes
+    public function trashed()
+    {
+        $companyId = request()->user()->company_id;
+        $q = request('q') ?? request('search');
+        $perPage = (int) (request('per_page') ?? 15);
+        $requests = ExamRequest::onlyTrashed()->where('company_id', $companyId)
+            ->search($q)
+            ->orderByDesc('date_demande')
+            ->paginate($perPage);
+        return ApiResponse::success($requests, 'exam_requests.trashed');
+    }
+
+    public function restore($id)
+    {
+        $companyId = request()->user()->company_id;
+        $req = ExamRequest::withTrashed()->where('company_id', $companyId)->findOrFail($id);
+        $req->restore();
+        return ApiResponse::success($req, 'exam_requests.restored');
+    }
+
+    public function forceDelete($id)
+    {
+        $companyId = request()->user()->company_id;
+        $req = ExamRequest::withTrashed()->where('company_id', $companyId)->findOrFail($id);
+        $req->forceDelete();
+        return ApiResponse::success(null, 'exam_requests.force_deleted');
     }
 
     private function authorizeRequest(ExamRequest $examRequest): void
