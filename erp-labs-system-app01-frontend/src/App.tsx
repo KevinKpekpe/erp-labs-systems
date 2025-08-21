@@ -47,6 +47,7 @@ import UserProfiles from "./pages/UserProfiles";
 import Forbidden from "./pages/OtherPage/Forbidden";
 import ServerError from "./pages/OtherPage/ServerError";
 import { ExamList, ExamCreate, ExamEdit, ExamDetails } from "./pages/Examens";
+import { DemandeList, DemandeCreate, DemandeDetails, DemandeEdit } from "./pages/Demandes";
 
 
 function CompanyGuard({ children }: { children: React.ReactElement }) {
@@ -108,6 +109,11 @@ export default function App() {
               <Route path="/examens/:id/modifier" element={<ProtectedRoute kind="company" requiredPermission={{ action: "UPDATE", module: "EXAMEN" }}><ExamEdit /></ProtectedRoute>} />
 
               {/* Gestion des Stocks */}
+              {/* Demandes d'examens */}
+              <Route path="/demandes" element={<ProtectedRoute kind="company" requiredPermission={{ action: "LIST", module: "DEMANDE_EXAMEN" }}><DemandeList /></ProtectedRoute>} />
+              <Route path="/demandes/nouvelle" element={<ProtectedRoute kind="company" requiredPermission={{ action: "CREATE", module: "DEMANDE_EXAMEN" }}><DemandeCreate /></ProtectedRoute>} />
+              <Route path="/demandes/:id" element={<ProtectedRoute kind="company" requiredPermission={{ action: "LIST", module: "DEMANDE_EXAMEN" }}><DemandeDetails /></ProtectedRoute>} />
+              <Route path="/demandes/:id/modifier" element={<ProtectedRoute kind="company" requiredPermission={{ action: "UPDATE", module: "DEMANDE_EXAMEN" }}><DemandeEdit /></ProtectedRoute>} />
               <Route path="/stocks" element={<ProtectedRoute kind="company" requiredPermission={{ action: "LIST", module: "STOCK" }}><StocksDashboard /></ProtectedRoute>} />
               <Route path="/stocks/laboratory" element={<ProtectedRoute kind="company" requiredPermission={{ action: "LIST", module: "STOCK" }}><LaboratoryStockDashboard /></ProtectedRoute>} />
               <Route path="/stocks/categories" element={<ProtectedRoute kind="company" requiredPermission={{ action: "LIST", module: "STOCK" }}><LaboratoryCategoryList /></ProtectedRoute>} />

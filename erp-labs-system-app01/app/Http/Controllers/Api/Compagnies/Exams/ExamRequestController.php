@@ -43,11 +43,40 @@ class ExamRequestController extends Controller
         $companyId = request()->user()->company_id;
         $q = request('q') ?? request('search');
         $perPage = (int) (request('per_page') ?? 15);
-        $requests = ExamRequest::where('company_id', $companyId)
-            ->with(['patient:id,nom,postnom,prenom','medecin:id,nom,prenom'])
-            ->search($q)
-            ->orderByDesc('date_demande')
-            ->paginate($perPage);
+        $statut = request('statut_demande');
+        $patientName = request('patient_name');
+        $doctorName = request('doctor_name');
+        $dateDebut = request('date_debut');
+        $dateFin = request('date_fin');
+        $sort = request('sort', 'date_demande');
+        $dir = request('dir', 'desc') === 'asc' ? 'asc' : 'desc';
+
+        $query = ExamRequest::where('company_id', $companyId)
+            ->with(['patient:id,nom,postnom,prenom','medecin:id,nom,prenom']);
+
+        if (!empty($q)) { $query->search($q); }
+        if (!empty($statut)) { $query->where('statut_demande', $statut); }
+        if (!empty($patientName)) {
+            $query->whereHas('patient', function ($qp) use ($patientName) {
+                $qp->where('nom', 'like', "%$patientName%");
+                $qp->orWhere('postnom', 'like', "%$patientName%");
+                $qp->orWhere('prenom', 'like', "%$patientName%");
+            });
+        }
+        if (!empty($doctorName)) {
+            $query->where(function ($qd) use ($doctorName) {
+                $qd->whereHas('medecin', function ($qm) use ($doctorName) {
+                    $qm->where('nom', 'like', "%$doctorName%")
+                        ->orWhere('prenom', 'like', "%$doctorName%");
+                })
+                ->orWhere('medecin_prescripteur_externe_nom', 'like', "%$doctorName%")
+                ->orWhere('medecin_prescripteur_externe_prenom', 'like', "%$doctorName%");
+            });
+        }
+        if (!empty($dateDebut)) { $query->whereDate('date_demande', '>=', $dateDebut); }
+        if (!empty($dateFin)) { $query->whereDate('date_demande', '<=', $dateFin); }
+
+        $requests = $query->orderBy($sort, $dir)->paginate($perPage);
         return ApiResponse::success($requests, 'exam_requests.list');
     }
 
@@ -153,7 +182,7 @@ class ExamRequestController extends Controller
     public function show(ExamRequest $examRequest)
     {
         $this->authorizeRequest($examRequest);
-        $examRequest->load(['patient:id,nom,postnom,prenom','medecin:id,nom,prenom','details']);
+        $examRequest->load(['patient:id,nom,postnom,prenom','medecin:id,nom,prenom','details','details.examen:id,nom_examen']);
         return ApiResponse::success($examRequest, 'exam_requests.details');
     }
 
@@ -371,6 +400,10 @@ class ExamRequestController extends Controller
         $this->authorizeRequest($examRequest);
         if ($detail->demande_id !== $examRequest->id) { abort(404); }
         $data = $request->validated();
+        // Si un résultat est fourni sans date, définir la date à maintenant pour éviter erreurs de format
+        if (array_key_exists('resultat', $data) && (!array_key_exists('date_resultat', $data) || empty($data['date_resultat']))) {
+            $data['date_resultat'] = now();
+        }
         $detail->update($data);
         return ApiResponse::success($detail->fresh(), 'exam_requests.detail.updated');
     }
