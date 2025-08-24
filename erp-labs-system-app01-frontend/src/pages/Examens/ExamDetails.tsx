@@ -111,7 +111,7 @@ export default function ExamDetails() {
               <div className="space-y-4">
                 <div>
                   <p className="text-sm text-gray-500 dark:text-gray-400">Prix</p>
-                  <p className="text-sm font-medium text-gray-900 dark:text-white">{typeof exam.prix === 'number' ? exam.prix.toLocaleString('fr-FR') + ' FC' : '-'}</p>
+                  <p className="text-sm font-medium text-gray-900 dark:text-white">{typeof exam.prix === 'number' ? new Intl.NumberFormat('fr-CD', { style: 'currency', currency: 'CDF', maximumFractionDigits: 0 }).format(exam.prix) : '-'}</p>
                 </div>
                 <div className="flex items-center gap-3">
                   <TimeIcon className="h-5 w-5 text-gray-400" />

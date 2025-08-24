@@ -99,7 +99,7 @@ export default function ExamList() {
                   <tr key={a.id}>
                     <td className="py-5 px-4 pl-9 xl:pl-11"><div className="flex flex-col"><h5 className="font-medium text-gray-800 dark:text-white/90">{a.nom_examen}</h5></div></td>
                     <td className="py-5 px-4"><p className="text-gray-800 dark:text-white/90 font-medium">{a.code}</p></td>
-                    <td className="py-5 px-4"><p className="text-gray-800 dark:text-white/90">{a.prix.toLocaleString('fr-FR')}</p></td>
+                    <td className="py-5 px-4"><p className="text-gray-800 dark:text-white/90">{new Intl.NumberFormat('fr-CD', { style: 'currency', currency: 'CDF', maximumFractionDigits: 0 }).format(a.prix)}</p></td>
                     <td className="py-5 px-4"><p className="text-gray-800 dark:text-white/90">{a.type_echantillon || '-'}</p></td>
                     <td className="py-5 px-4">
                       <div className="flex items-center space-x-3.5">

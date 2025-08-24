@@ -3,6 +3,7 @@ import { Helmet } from "react-helmet-async";
 import { useParams } from "react-router";
 import { ChevronLeftIcon, PencilIcon, UserIcon, CalenderIcon, UserCircleIcon } from "../../icons";
 import { Link } from "react-router";
+import { formatCDF } from "../../lib/currency";
 
 // Interface pour un médecin
 interface Medecin {
@@ -356,7 +357,7 @@ export default function MedecinDetails() {
                               <div>
                                 <p className="text-sm text-gray-500 dark:text-gray-400">Montant total</p>
                                 <p className="text-sm font-medium text-gray-900 dark:text-white">
-                                  {demande.montant_total.toLocaleString('fr-FR')} FC
+                                  {formatCDF(demande.montant_total)}
                                 </p>
                               </div>
                             </div>

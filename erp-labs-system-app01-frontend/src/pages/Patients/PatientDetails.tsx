@@ -4,6 +4,7 @@ import { ChevronLeftIcon, UserIcon, PencilIcon, CalenderIcon, UserCircleIcon, Ma
 import Badge from "../../components/ui/badge/Badge";
 import { Link, useParams } from "react-router";
 import { apiFetch } from "../../lib/apiClient";
+import { formatCDF } from "../../lib/currency";
 
 type DemandeExamen = { id: number; code: string; date_demande?: string; statut_demande?: string; medecin?: { nom?: string } | null; examens?: Array<{ nom_examen?: string }>; montant_total?: number };
 type Patient = { id: number; code: string; nom: string; postnom?: string | null; prenom: string; email?: string | null; date_naissance?: string; sexe?: 'M' | 'F' | string; adresse?: string; contact?: string; type?: { nom_type?: string; id?: number } | null; type_patient?: string | null };
@@ -153,7 +154,7 @@ export default function PatientDetails() {
                               <div><p className="text-gray-500 dark:text-gray-400">Date de demande</p><p className="font-medium text-gray-900 dark:text-white">{demande.date_demande ? formatDate(demande.date_demande) : '-'}</p></div>
                               <div><p className="text-gray-500 dark:text-gray-400">Médecin prescripteur</p><p className="font-medium text-gray-900 dark:text-white">{demande.medecin?.nom || '-'}</p></div>
                               <div><p className="text-gray-500 dark:text-gray-400">Examens demandés</p><p className="font-medium text-gray-900 dark:text-white">{(demande.examens?.length || 0)} examen(s)</p><ul className="mt-1 text-xs text-gray-600 dark:text-gray-400">{(demande.examens || []).map((ex, index) => (<li key={index}>• {ex.nom_examen || 'Examen'}</li>))}</ul></div>
-                              <div><p className="text-gray-500 dark:text-gray-400">Montant total</p><p className="font-medium text-gray-900 dark:text-white">{typeof demande.montant_total === 'number' ? demande.montant_total.toLocaleString('fr-FR') + ' FC' : '-'}</p></div>
+                              <div><p className="text-gray-500 dark:text-gray-400">Montant total</p><p className="font-medium text-gray-900 dark:text-white">{typeof demande.montant_total === 'number' ? formatCDF(demande.montant_total) : '-'}</p></div>
                             </div>
                           </div>
                           <Link to={`/demandes/${demande.id}`} className="ml-4 inline-flex items-center justify-center rounded-md bg-brand-500 px-3 py-2 text-sm font-medium text-white hover:bg-opacity-90">Voir détails</Link>
