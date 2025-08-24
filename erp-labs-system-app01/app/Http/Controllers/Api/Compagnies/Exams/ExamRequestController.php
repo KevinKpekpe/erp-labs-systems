@@ -182,7 +182,12 @@ class ExamRequestController extends Controller
     public function show(ExamRequest $examRequest)
     {
         $this->authorizeRequest($examRequest);
-        $examRequest->load(['patient:id,nom,postnom,prenom','medecin:id,nom,prenom','details','details.examen:id,nom_examen']);
+        $examRequest->load([
+            'patient:id,nom,postnom,prenom,sexe,date_naissance,contact,adresse',
+            'medecin:id,nom,prenom',
+            'details',
+            'details.examen:id,code,nom_examen,unites_mesure,valeurs_reference,type_echantillon'
+        ]);
         return ApiResponse::success($examRequest, 'exam_requests.details');
     }
 
@@ -300,36 +305,13 @@ class ExamRequestController extends Controller
     public function destroy(ExamRequest $examRequest)
     {
         $this->authorizeRequest($examRequest);
-        // Annulation: interdite si Terminée; si En cours, rollback des déductions
-        if ($examRequest->statut_demande === 'Terminée') {
-            return ApiResponse::error('exam_requests.cannot_cancel_finished', 422, 'CANNOT_CANCEL');
-        }
-        if ($examRequest->statut_demande === 'En cours') {
-            // Reprise de stock: reconstituer quantités des lots pour cette demande
-            DB::transaction(function () use ($examRequest) {
-                $companyId = $examRequest->company_id;
-                $movements = StockMovement::where('company_id', $companyId)
-                    ->where('demande_id', $examRequest->id)
-                    ->where('type_mouvement', 'Sortie')
-                    ->lockForUpdate()
-                    ->get();
-                foreach ($movements as $mov) {
-                    if ($mov->stock_lot_id) {
-                        $lot = StockLot::where('company_id', $companyId)->lockForUpdate()->find($mov->stock_lot_id);
-                        if ($lot) {
-                            $lot->quantite_restante += (int) $mov->quantite;
-                            $lot->save();
-                        }
-                    }
-                    $stock = Stock::where('company_id', $companyId)->lockForUpdate()->find($mov->stock_id);
-                    if ($stock) {
-                        $stock->quantite_actuelle = $stock->quantite_actuelle_calculee;
-                        $stock->save();
-                    }
-                }
-                // Marquer ces mouvements comme annulés (soft delete)
-                StockMovement::whereIn('id', $movements->pluck('id'))->delete();
-            });
+        // Annulation interdite si Terminée ou En cours
+        if (in_array($examRequest->statut_demande, ['Terminée', 'En cours'], true)) {
+            $msgKey = $examRequest->statut_demande === 'Terminée'
+                ? 'exam_requests.cannot_cancel_finished'
+                : 'exam_requests.cannot_cancel_in_progress';
+            $code = $examRequest->statut_demande === 'Terminée' ? 'CANNOT_CANCEL' : 'CANNOT_CANCEL_IN_PROGRESS';
+            return ApiResponse::error($msgKey, 422, $code);
         }
         $examRequest->update(['statut_demande' => 'Annulée']);
         $examRequest->delete();

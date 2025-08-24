@@ -78,7 +78,23 @@ export default function DemandeList() {
     }
   };
 
-  useEffect(() => { fetchData(); }, [q, meta.page, trashed]);
+  useEffect(() => { fetchData(); }, [q, patientName, doctorName, statut, dateDebut, dateFin, meta.page, trashed]);
+
+  // Filtres réactifs: MAJ de l'URL et reset page avec un léger debounce
+  useEffect(() => {
+    const t = setTimeout(() => {
+      const params: Record<string, string> = { page: '1', trashed: trashed ? '1' : '0' };
+      if (q) params.q = q;
+      if (patientName) params.patient_name = patientName;
+      if (doctorName) params.doctor_name = doctorName;
+      if (statut) params.statut_demande = statut;
+      if (dateDebut) params.date_debut = dateDebut;
+      if (dateFin) params.date_fin = dateFin;
+      setSearchParams(params);
+      setMeta((m) => ({ ...m, page: 1 }));
+    }, 400);
+    return () => clearTimeout(t);
+  }, [q, patientName, doctorName, statut, dateDebut, dateFin, trashed, setSearchParams]);
 
   const onSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -170,6 +186,7 @@ export default function DemandeList() {
             </div>
             <div className="flex items-center gap-2 md:col-span-6">
               <button className="inline-flex items-center justify-center rounded-md bg-brand-500 px-5 py-2 text-center text-sm font-medium text-white hover:bg-opacity-90" type="submit">Appliquer</button>
+              <span className="text-xs text-gray-500 dark:text-gray-400">Filtrage automatique activé</span>
             </div>
           </form>
         </div>
@@ -209,7 +226,9 @@ export default function DemandeList() {
                             {d.statut_demande === 'En attente' && (
                               <Link to={`/demandes/${d.id}/modifier`} className="inline-flex items-center justify-center rounded-md px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800">Modifier</Link>
                             )}
-                            <button onClick={async () => { await apiFetch(`/v1/exam-requests/${d.id}`, { method: 'DELETE' }); fetchData(); }} className="inline-flex items-center justify-center rounded-md px-3 py-1.5 text-sm text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20">Annuler</button>
+                            {(() => { const cannotCancel = ['en cours','terminée','annulée'].includes(d.statut_demande.toLowerCase()); return (
+                              <button disabled={cannotCancel} onClick={async () => { if (cannotCancel) return; await apiFetch(`/v1/exam-requests/${d.id}`, { method: 'DELETE' }); fetchData(); }} className="inline-flex items-center justify-center rounded-md px-3 py-1.5 text-sm text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20 disabled:opacity-50">Annuler</button>
+                            ); })()}
                           </>) : (<>
                             <button onClick={() => restore(d.id)} className="inline-flex items-center justify-center rounded-md px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800">Restaurer</button>
                             <button onClick={() => forceDelete(d.id)} className="inline-flex items-center justify-center rounded-md px-3 py-1.5 text-sm text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20">Supprimer</button>

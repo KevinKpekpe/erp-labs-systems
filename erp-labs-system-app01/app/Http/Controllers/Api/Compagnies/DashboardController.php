@@ -132,19 +132,22 @@ class DashboardController extends Controller
         $companyId = request()->user()->company_id;
         $limit = (int) request('limit', 10);
 
+        // Agrégation directe avec GROUP_CONCAT sur les détails
         $rows = DB::table('demande_examens as dr')
             ->join('patients as p', 'dr.patient_id', '=', 'p.id')
-            ->join('demande_examen_details as d', 'dr.id', '=', 'd.demande_id')
-            ->join('examens as e', 'd.examen_id', '=', 'e.id')
             ->leftJoin('doctors as doc', 'dr.medecin_prescripteur_id', '=', 'doc.id')
+            ->join('demande_examen_details as d', 'd.demande_id', '=', 'dr.id')
+            ->join('examens as e', 'e.id', '=', 'd.examen_id')
             ->where('dr.company_id', $companyId)
+            ->groupBy('dr.id', 'p.nom', 'p.prenom', 'p.code', 'doc.nom', 'doc.prenom', 'dr.medecin_prescripteur_externe_nom', 'dr.date_demande', 'dr.statut_demande')
             ->orderByDesc('dr.date_demande')
             ->limit($limit)
             ->select([
                 'dr.id',
                 DB::raw("CONCAT(p.nom, ' ', p.prenom) as patientName"),
                 'p.code as patientCode',
-                'e.nom_examen as typeExamen',
+                DB::raw("MIN(e.nom_examen) as typeExamen"),
+                DB::raw("GROUP_CONCAT(DISTINCT e.nom_examen ORDER BY e.nom_examen SEPARATOR ', ') as examens"),
                 DB::raw("COALESCE(CONCAT(doc.nom, ' ', doc.prenom), dr.medecin_prescripteur_externe_nom) as medecin"),
                 'dr.date_demande as dateDemande',
                 'dr.statut_demande as statut',

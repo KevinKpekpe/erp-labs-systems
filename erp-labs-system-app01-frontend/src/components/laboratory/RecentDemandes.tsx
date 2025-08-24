@@ -18,22 +18,28 @@ type BadgeColor = "success" | "warning" | "info" | "error" | "light";
 function isObject(value: unknown): value is Record<string, unknown> { return typeof value === "object" && value !== null; }
 
 function mapRow(raw: Record<string, unknown>): DemandeExamen {
-  // Format 1: Dashboard recent-requests (déjà aplati par le backend)
-  const directPatientName = (raw.patientName as string) ?? null;
-  const directType = (raw.typeExamen as string) ?? null;
-  const directMedecin = (raw.medecin as string) ?? null;
-  const directDate = (raw.dateDemande as string) ?? null;
-  const directStatut = (raw.statut as string) ?? null;
+  // Format 1: Dashboard recent-requests (aplati). Peut renvoyer `typeExamen` ou `examens`
+  const hasDirect = (
+    typeof raw.patientName === 'string' ||
+    typeof raw.typeExamen === 'string' ||
+    typeof raw.examens === 'string' ||
+    typeof raw.medecin === 'string' ||
+    typeof raw.dateDemande === 'string' ||
+    typeof raw.statut === 'string'
+  );
 
-  if (directPatientName || directType || directMedecin || directDate || directStatut) {
+  if (hasDirect) {
+    const examText = typeof raw.typeExamen === 'string'
+      ? raw.typeExamen
+      : (typeof raw.examens === 'string' ? raw.examens : '');
     return {
       id: Number(raw.id ?? 0),
-      patientName: String(directPatientName ?? ""),
-      patientCode: String((raw.patientCode as string) ?? ""),
-      typeExamen: String(directType ?? ""),
-      medecin: String(directMedecin ?? ""),
-      dateDemande: String(directDate ?? ""),
-      statut: String(directStatut ?? ""),
+      patientName: typeof raw.patientName === 'string' ? raw.patientName : '',
+      patientCode: typeof raw.patientCode === 'string' ? raw.patientCode : '',
+      typeExamen: examText,
+      medecin: typeof raw.medecin === 'string' ? raw.medecin : '',
+      dateDemande: typeof raw.dateDemande === 'string' ? raw.dateDemande : '',
+      statut: typeof raw.statut === 'string' ? raw.statut : '',
     };
   }
 
@@ -62,25 +68,74 @@ function extractRows(resp: unknown): DemandeExamen[] {
 
 export default function RecentDemandes() {
   const [rows, setRows] = useState<DemandeExamen[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function enrichMissingExamNames(items: DemandeExamen[]): Promise<DemandeExamen[]> {
+    const needEnrich = items.filter((r) => !r.typeExamen || r.typeExamen.trim() === "");
+    if (needEnrich.length === 0) return items;
+    try {
+      const updated = await Promise.all(items.map(async (r) => {
+        if (r.typeExamen && r.typeExamen.trim() !== "") return r;
+        try {
+          const detailResp = await apiFetch<any>(`/v1/exam-requests/${r.id}`, { method: "GET" }, "company");
+          const data = detailResp?.data ?? detailResp;
+          const details: any[] = Array.isArray(data?.details) ? data.details : [];
+          const names = details
+            .map((d) => d?.examen?.nom_examen)
+            .filter((v) => typeof v === "string" && v.trim() !== "");
+          const text = names.join(", ");
+          return { ...r, typeExamen: text };
+        } catch {
+          return r;
+        }
+      }));
+      return updated;
+    } catch {
+      return items;
+    }
+  }
 
   useEffect(() => {
     let mounted = true;
     (async () => {
+      setLoading(true);
+      setError(null);
       try {
         // Endpoint privilégié: aplati et prêt à afficher
-        const res = await apiFetch<unknown>("/v1/dashboard/recent-requests?limit=10", { method: "GET" }, "company");
+        const res = await apiFetch<unknown>("/v1/dashboard/recent-requests?limit=5", { method: "GET" }, "company");
         if (!mounted) return;
-        const parsed = extractRows(res);
+        let parsed = extractRows(res);
+        parsed = await enrichMissingExamNames(parsed);
         if (parsed.length > 0) {
           setRows(parsed);
           return;
         }
-        // Fallback vers listing exam-requests si besoin
-        const res2 = await apiFetch<unknown>("/v1/exam-requests?per_page=10", { method: "GET" }, "company");
-        if (!mounted) return;
-        setRows(extractRows(res2));
-      } catch {
-        // noop
+        // Fallback vers listing exam-requests si besoin (même si premier appel a retourné un format inattendu)
+        try {
+          const res2 = await apiFetch<unknown>("/v1/exam-requests?per_page=5", { method: "GET" }, "company");
+          if (!mounted) return;
+          let alt = extractRows(res2);
+          alt = await enrichMissingExamNames(alt);
+          setRows(alt);
+        } catch (e2: any) {
+          if (!mounted) return;
+          setError(e2?.message || "Erreur de chargement");
+        }
+      } catch (e: any) {
+        // En cas d'erreur, tenter un fallback
+        try {
+          const res2 = await apiFetch<unknown>("/v1/exam-requests?per_page=5", { method: "GET" }, "company");
+          if (!mounted) return;
+          let alt = extractRows(res2);
+          alt = await enrichMissingExamNames(alt);
+          setRows(alt);
+        } catch (e2: any) {
+          if (!mounted) return;
+          setError(e2?.message || "Erreur de chargement");
+        }
+      } finally {
+        if (mounted) setLoading(false);
       }
     })();
     return () => { mounted = false; };
@@ -124,7 +179,13 @@ export default function RecentDemandes() {
             </TableRow>
           </TableHeader>
           <TableBody className="divide-y divide-gray-100 dark:divide-gray-800">
-            {rows.map((demande) => (
+            {loading ? (
+              <TableRow><TableCell colSpan={5} className="py-4 text-gray-500 dark:text-gray-400">Chargement…</TableCell></TableRow>
+            ) : error ? (
+              <TableRow><TableCell colSpan={5} className="py-4 text-red-500">{error}</TableCell></TableRow>
+            ) : rows.length === 0 ? (
+              <TableRow><TableCell colSpan={5} className="py-4 text-gray-500 dark:text-gray-400">Aucune demande récente</TableCell></TableRow>
+            ) : rows.map((demande) => (
               <TableRow key={demande.id}>
                 <TableCell className="py-3">
                   <div className="flex items-center gap-3">
