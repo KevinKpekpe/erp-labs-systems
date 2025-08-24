@@ -13,6 +13,7 @@ import {
 import Badge from "../../components/ui/badge/Badge";
 import { Link } from "react-router";
 import { apiFetch } from "../../lib/apiClient";
+import { formatCDF } from "../../lib/currency";
 
 interface StockStats {
   totalArticles: number;
@@ -116,12 +117,7 @@ export default function StocksDashboard() {
     };
   }, []);
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("fr-FR", {
-      style: "currency",
-      currency: "CDF",
-    }).format(amount);
-  };
+  const formatCurrency = (amount: number) => formatCDF(amount);
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleString("fr-FR", {

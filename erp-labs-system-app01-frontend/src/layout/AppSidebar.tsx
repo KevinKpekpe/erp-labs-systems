@@ -110,8 +110,7 @@ const baseNavItems: NavItem[] = [
     name: "Facturation",
     subItems: [
       { name: "Factures", path: "/factures", requiredPermission: { action: "LIST", module: "FACTURE" } },
-      { name: "Paiements", path: "/factures/paiements", requiredPermission: { action: "LIST", module: "PAIEMENT" } },
-      { name: "Rapports", path: "/factures/rapports", requiredPermission: { action: "LIST", module: "FACTURE" } },
+      { name: "Paiements", path: "/factures/paiements", requiredPermission: { action: "LIST", module: "PAIEMENT" } }
     ],
   },
   {
@@ -168,6 +167,7 @@ const baseOthersItems: NavItem[] = [
     icon: <PieChartIcon />,
     name: "Rapports",
     subItems: [
+      { name: "Dashboard financier", path: "/factures/dashboard", requiredPermission: { action: "LIST", module: "FACTURE" } },
       { name: "Statistiques", path: "/rapports/stats", requiredPermission: { action: "LIST", module: "EXAMEN" } },
       { name: "Analyses", path: "/rapports/analyses", requiredPermission: { action: "LIST", module: "EXAMEN" } },
       { name: "Exports", path: "/rapports/exports", requiredPermission: { action: "LIST", module: "EXAMEN" } },

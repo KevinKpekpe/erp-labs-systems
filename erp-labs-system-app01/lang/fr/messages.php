@@ -49,6 +49,9 @@ return [
         'forbidden' => 'Accès interdit.',
         'not_found' => 'Ressource introuvable.',
     ],
+    'payments' => [
+        'amount_exceeds_total' => 'Le montant payé dépasse le reste à payer.',
+    ],
 ];
 
 

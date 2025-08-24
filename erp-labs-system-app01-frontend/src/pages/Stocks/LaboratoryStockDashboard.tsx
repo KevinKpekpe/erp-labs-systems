@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { Link } from "react-router";
 import { apiFetch } from "../../lib/apiClient";
+import { formatCDF } from "../../lib/currency";
 import Alert from "../../components/ui/alert/Alert";
 import { 
   AlertIcon, 
@@ -171,12 +172,7 @@ export default function LaboratoryStockDashboard() {
     loadDashboardData();
   }, []);
 
-  const formatCurrency = (value: number): string => {
-    return new Intl.NumberFormat('fr-FR', {
-      style: 'currency',
-      currency: 'EUR'
-    }).format(value);
-  };
+  const formatCurrency = (value: number): string => formatCDF(value);
 
   const getPriorityColor = (priorite: string) => {
     switch (priorite) {
@@ -267,9 +263,7 @@ export default function LaboratoryStockDashboard() {
                   <ChartIcon className="h-6 w-6 text-green-600 dark:text-green-400" />
                 </div>
                 <div className="mt-4">
-                  <h4 className="text-title-md font-bold text-gray-800 dark:text-white/90">
-                    {formatCurrency(data.stocks_overview.total_valeur)}
-                  </h4>
+                  <h4 className="text-title-md font-bold text-gray-800 dark:text-white/90">{formatCurrency(data.stocks_overview.total_valeur)}</h4>
                   <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Valeur totale du stock</p>
                 </div>
               </div>

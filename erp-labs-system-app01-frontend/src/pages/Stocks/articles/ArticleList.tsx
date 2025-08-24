@@ -6,6 +6,7 @@ import Modal from "../../../components/ui/Modal";
 import Alert from "../../../components/ui/alert/Alert";
 import { Link, useLocation, useNavigate } from "react-router";
 import { apiFetch } from "../../../lib/apiClient";
+import { formatCDF } from "../../../lib/currency";
 
 interface ArticleRow { id: number; code: string; nom_article: string; categorie?: string | null; prix_unitaire: number; unite_mesure?: string | null; fournisseur?: string | null }
 function isRecord(v: unknown): v is Record<string, unknown> { return typeof v === 'object' && v !== null; }
@@ -211,7 +212,7 @@ export default function ArticleList() {
                     <td className="py-5 px-4 pl-9 xl:pl-11"><div className="flex flex-col"><h5 className="font-medium text-gray-800 dark:text-white/90">{a.nom_article}</h5></div></td>
                     <td className="py-5 px-4"><p className="text-gray-800 dark:text-white/90 font-medium">{a.code}</p></td>
                     <td className="py-5 px-4"><p className="text-gray-800 dark:text-white/90">{a.categorie || '-'}</p></td>
-                    <td className="py-5 px-4"><p className="text-gray-800 dark:text-white/90">{a.prix_unitaire.toLocaleString('fr-FR')}</p></td>
+                    <td className="py-5 px-4"><p className="text-gray-800 dark:text-white/90">{formatCDF(a.prix_unitaire)}</p></td>
                     <td className="py-5 px-4">
                       <div className="flex items-center space-x-3.5">
                         {!showTrashed ? (<>

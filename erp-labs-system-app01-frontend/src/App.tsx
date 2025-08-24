@@ -48,6 +48,7 @@ import Forbidden from "./pages/OtherPage/Forbidden";
 import ServerError from "./pages/OtherPage/ServerError";
 import { ExamList, ExamCreate, ExamEdit, ExamDetails } from "./pages/Examens";
 import { DemandeList, DemandeCreate, DemandeDetails, DemandeEdit } from "./pages/Demandes";
+import { InvoicesList, InvoiceDetails, PaymentsList, BillingDashboard } from "./pages";
 
 
 function CompanyGuard({ children }: { children: React.ReactElement }) {
@@ -141,6 +142,12 @@ export default function App() {
               <Route path="/stocks/mouvements" element={<ProtectedRoute kind="company" requiredPermission={{ action: "LIST", module: "STOCK" }}><MovementList /></ProtectedRoute>} />
               <Route path="/stocks/alertes" element={<ProtectedRoute kind="company" requiredPermission={{ action: "LIST", module: "STOCK" }}><AlertsManagement /></ProtectedRoute>} />
               <Route path="/stocks/lots/expired" element={<ProtectedRoute kind="company" requiredPermission={{ action: "LIST", module: "STOCK" }}><ExpiredLotsManagement /></ProtectedRoute>} />
+
+              {/* Facturation */}
+              <Route path="/factures" element={<ProtectedRoute kind="company" requiredPermission={{ action: "LIST", module: "FACTURE" }}><InvoicesList /></ProtectedRoute>} />
+              <Route path="/factures/:id" element={<ProtectedRoute kind="company" requiredPermission={{ action: "LIST", module: "FACTURE" }}><InvoiceDetails /></ProtectedRoute>} />
+              <Route path="/factures/paiements" element={<ProtectedRoute kind="company" requiredPermission={{ action: "LIST", module: "PAIEMENT" }}><PaymentsList /></ProtectedRoute>} />
+              <Route path="/factures/dashboard" element={<ProtectedRoute kind="company" requiredPermission={{ action: "LIST", module: "FACTURE" }}><BillingDashboard /></ProtectedRoute>} />
 
               {/* Profile & Administration */}
               <Route path="/profile" element={<UserProfiles />} />

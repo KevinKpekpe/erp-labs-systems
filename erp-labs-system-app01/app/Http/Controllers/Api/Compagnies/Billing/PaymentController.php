@@ -18,6 +18,7 @@ class PaymentController extends Controller
         $q = request('q') ?? request('search');
         $perPage = (int) (request('per_page') ?? 15);
         $payments = Payment::where('company_id', $companyId)
+            ->with(['invoice:id,code'])
             ->search($q)
             ->orderByDesc('date_paiement')
             ->paginate($perPage);
@@ -31,6 +32,7 @@ class PaymentController extends Controller
         $perPage = (int) (request('per_page') ?? 15);
         $payments = Payment::where('company_id', $companyId)
             ->whereHas('invoice', fn($q2) => $q2->where('patient_id', $patientId))
+            ->with(['invoice:id,code'])
             ->search($q)
             ->orderByDesc('date_paiement')
             ->paginate($perPage);
@@ -44,6 +46,15 @@ class PaymentController extends Controller
 
         $payment = DB::transaction(function () use ($companyId, $data) {
             $invoice = Invoice::where('company_id', $companyId)->findOrFail($data['facture_id']);
+
+            // Empêcher le dépassement du montant total (somme des paiements existants + nouveau)
+            $alreadyPaid = Payment::where('company_id', $companyId)
+                ->where('facture_id', $invoice->id)
+                ->sum('montant_paye');
+            $newTotal = (float) $alreadyPaid + (float) $data['montant_paye'];
+            if ($newTotal - (float) $invoice->montant_total > 0.00001) {
+                return ApiResponse::error('payments.amount_exceeds_total', 422, 'AMOUNT_EXCEEDS_TOTAL');
+            }
 
             $payment = Payment::create([
                 'company_id' => $companyId,

@@ -21,6 +21,7 @@ use App\Http\Controllers\Api\Compagnies\Exams\ExamController;
 use App\Http\Controllers\Api\Compagnies\Exams\ExamRequestController;
 use App\Http\Controllers\Api\Compagnies\Billing\PaymentController;
 use App\Http\Controllers\Api\Compagnies\Billing\InvoiceController;
+use App\Http\Controllers\Api\Compagnies\Billing\BillingDashboardController;
 use App\Http\Controllers\Api\Compagnies\Stock\AlertController as StockAlertController;
 use App\Http\Controllers\Api\Compagnies\Stock\StockDashboardController;
 use App\Http\Controllers\Api\Compagnies\DashboardController;
@@ -253,5 +254,8 @@ Route::prefix('v1')->group(function () {
 		Route::get('/invoices/{invoice}', [InvoiceController::class, 'show'])->middleware('can.permission:LIST,FACTURE');
 		Route::delete('/invoices/{invoice}', [InvoiceController::class, 'destroy'])->middleware('can.permission:DELETE,FACTURE');
 		Route::get('/patients/{patient}/invoices', [InvoiceController::class, 'byPatient'])->middleware('can.permission:LIST,FACTURE');
+
+		// Billing dashboard
+		Route::get('/billing/dashboard/metrics', [BillingDashboardController::class, 'metrics'])->middleware('can.permission:LIST,FACTURE');
 	});
 });
