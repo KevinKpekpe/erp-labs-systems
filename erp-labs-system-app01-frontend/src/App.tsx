@@ -48,7 +48,7 @@ import Forbidden from "./pages/OtherPage/Forbidden";
 import ServerError from "./pages/OtherPage/ServerError";
 import { ExamList, ExamCreate, ExamEdit, ExamDetails } from "./pages/Examens";
 import { DemandeList, DemandeCreate, DemandeDetails, DemandeEdit } from "./pages/Demandes";
-import { InvoicesList, InvoiceDetails, PaymentsList, BillingDashboard } from "./pages";
+import { InvoicesList, InvoiceDetails, PaymentsList, BillingDashboard, RolesList, RoleForm, RoleDetails } from "./pages";
 
 
 function CompanyGuard({ children }: { children: React.ReactElement }) {
@@ -152,6 +152,11 @@ export default function App() {
               {/* Profile & Administration */}
               <Route path="/profile" element={<UserProfiles />} />
               <Route path="/permissions" element={<ProtectedRoute kind="company" requiredPermission={{ action: "LIST", module: "ROLE" }}><Permissions /></ProtectedRoute>} />
+              {/* Rôles */}
+              <Route path="/users/roles" element={<ProtectedRoute kind="company" requiredPermission={{ action: "LIST", module: "ROLE" }}><RolesList /></ProtectedRoute>} />
+              <Route path="/users/roles/nouveau" element={<ProtectedRoute kind="company" requiredPermission={{ action: "CREATE", module: "ROLE" }}><RoleForm /></ProtectedRoute>} />
+              <Route path="/users/roles/:id" element={<ProtectedRoute kind="company" requiredPermission={{ action: "LIST", module: "ROLE" }}><RoleDetails /></ProtectedRoute>} />
+              <Route path="/users/roles/:id/modifier" element={<ProtectedRoute kind="company" requiredPermission={{ action: "UPDATE", module: "ROLE" }}><RoleForm /></ProtectedRoute>} />
               <Route path="/company-info" element={<ProtectedRoute kind="company" requiredPermission={{ action: "UPDATE", module: "COMPANY" }}><CompanyInfo /></ProtectedRoute>} />
 
               {/* Others Page */}

@@ -167,7 +167,7 @@ export default function CategoryArticleEdit() {
               <ChevronLeftIcon className="mr-2 h-4 w-4" />Retour
             </Link>
             <div>
-              <h2 className="text-title-md2 font-semibold text-black dark:text-white">Modifier catégorie</h2>
+            <h2 className="text-title-md2 font-semibold text-black dark:text-white">Modifier catégorie</h2>
               <p className="text-sm text-gray-500 dark:text-gray-400">{category.code} - {category.nom_categorie}</p>
             </div>
           </div>
@@ -200,7 +200,7 @@ export default function CategoryArticleEdit() {
                 {errors.nom_categorie && <p className="mt-1 text-sm text-red-500">{errors.nom_categorie}</p>}
               </div>
 
-              <div>
+            <div>
                 <label htmlFor="type_laboratoire" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Type de laboratoire
                 </label>

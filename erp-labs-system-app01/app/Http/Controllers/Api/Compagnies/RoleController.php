@@ -19,6 +19,9 @@ class RoleController extends Controller
         $q = request('q') ?? request('search');
         $roles = Role::where('company_id', $companyId)
             ->search($q)
+            ->with(['permissions' => function ($q) {
+                $q->select('permissions.id', 'permissions.code', 'permissions.action', 'permissions.module');
+            }])
             ->orderBy('nom_role')
             ->get();
         return ApiResponse::success($roles);

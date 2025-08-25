@@ -25,6 +25,7 @@ use App\Http\Controllers\Api\Compagnies\Billing\BillingDashboardController;
 use App\Http\Controllers\Api\Compagnies\Stock\AlertController as StockAlertController;
 use App\Http\Controllers\Api\Compagnies\Stock\StockDashboardController;
 use App\Http\Controllers\Api\Compagnies\DashboardController;
+use App\Http\Controllers\Api\Compagnies\PermissionController as CompanyPermissionController;
 
 // SuperAdmin Auth
 Route::prefix('v1/superadmin')->group(function () {
@@ -102,6 +103,9 @@ Route::prefix('v1')->group(function () {
 		Route::get('/roles-trashed', [CompanyRoleController::class, 'trashed'])->middleware('can.permission:LIST,ROLE');
 		Route::post('/roles/{id}/restore', [CompanyRoleController::class, 'restore'])->middleware('can.permission:UPDATE,ROLE');
 		Route::delete('/roles/{id}/force', [CompanyRoleController::class, 'forceDelete'])->middleware('can.permission:DELETE,ROLE');
+
+		// Permissions (lecture seule pour association aux rôles)
+		Route::get('/permissions', [CompanyPermissionController::class, 'index'])->middleware('can.permission:LIST,ROLE');
 
 		// Company Users (1 role only)
 		Route::get('/users', [CompanyUserController::class, 'index'])->middleware('can.permission:LIST,USER');
