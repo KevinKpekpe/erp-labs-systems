@@ -29,6 +29,7 @@ const AuthContext = createContext<{
   loginSuperAdmin: (input: { login: string; password: string }) => Promise<void>;
   logout: () => Promise<void>;
   hasPermission: (action: string, module: string) => boolean;
+  refreshMe: () => Promise<void>;
 } | null>(null);
 
 const initialState: AuthState = {
@@ -107,7 +108,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     [state.permissions, state.kind]
   );
 
-  const value = useMemo(() => ({ state, loginCompany, loginSuperAdmin, logout, hasPermission }), [state, loginCompany, loginSuperAdmin, logout, hasPermission]);
+  const refreshMe = useCallback(async () => {
+    if (state.kind === "company" && state.token) {
+      const me = await apiFetch<any>("/v1/auth/me", { method: "GET" }, "company");
+      setState((s) => ({ ...s, user: me.data.user, company: me.data.company, roles: me.data.roles ?? [], permissions: me.data.permissions ?? [] }));
+      return;
+    }
+    if (state.kind === "superadmin" && state.token) {
+      const me = await apiFetch<any>("/v1/superadmin/me", { method: "GET" }, "superadmin");
+      setState((s) => ({ ...s, user: me.data ?? me, company: null, roles: [], permissions: [] }));
+      return;
+    }
+  }, [state.kind, state.token]);
+
+  const value = useMemo(() => ({ state, loginCompany, loginSuperAdmin, logout, hasPermission, refreshMe }), [state, loginCompany, loginSuperAdmin, logout, hasPermission, refreshMe]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

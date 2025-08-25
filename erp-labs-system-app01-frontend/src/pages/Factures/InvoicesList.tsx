@@ -6,6 +6,7 @@ import Alert from "../../components/ui/alert/Alert";
 import { formatCDF } from "../../lib/currency";
 import Badge from "../../components/ui/badge/Badge";
 import { apiFetch } from "../../lib/apiClient";
+import { EyeIcon } from "../../icons";
 
 type BadgeColor = "success" | "warning" | "info" | "error" | "light";
 
@@ -185,7 +186,11 @@ export default function InvoicesList() {
                     <td className="py-4 px-4 text-gray-800 dark:text-white/90">{formatCDF(inv.montant_total)}</td>
                     <td className="py-4 px-4 text-gray-800 dark:text-white/90"><Badge size="sm" color={statutColor(inv.statut)}>{inv.statut}</Badge></td>
                     <td className="py-4 px-4 text-gray-800 dark:text-white/90">{new Date(inv.date_facture).toLocaleDateString()}</td>
-                    <td className="py-4 px-4"><Link className="text-brand-600 hover:underline" to={`/factures/${inv.id}`}>Voir</Link></td>
+                    <td className="py-4 px-4">
+                      <Link className="text-brand-600 hover:text-brand-700" to={`/factures/${inv.id}`} title="Voir">
+                        <EyeIcon className="h-5 w-5" />
+                      </Link>
+                    </td>
                   </tr>
                 ))}
               </tbody>

@@ -4,7 +4,9 @@ namespace App\Http\Controllers\Api\Compagnies\Billing;
 
 use App\Http\Controllers\Controller;
 use App\Models\Invoice;
+use App\Models\Payment;
 use App\Support\ApiResponse;
+use App\Services\AuditService;
 
 class InvoiceController extends Controller
 {
@@ -61,13 +63,26 @@ class InvoiceController extends Controller
     public function destroy(Invoice $invoice)
     {
         $this->authorizeInvoice($invoice);
-        // Autoriser l'annulation si non payée entièrement
-        if ($invoice->statut_facture === 'Payée') {
-            return ApiResponse::error('invoices.cannot_cancel_paid', 422, 'CANNOT_CANCEL');
+        // Déjà annulée
+        if ($invoice->statut_facture === 'Annulée') {
+            return ApiResponse::error('invoices.already_cancelled', 422, 'ALREADY_CANCELLED');
         }
+
+        // Interdire l'annulation si des paiements existent (même partiels)
+        $sum = Payment::where('company_id', request()->user()->company_id)
+            ->where('facture_id', $invoice->id)
+            ->sum('montant_paye');
+        if ($sum > 0.00001) {
+            return ApiResponse::error('invoices.cannot_cancel_with_payments', 422, 'CANNOT_CANCEL');
+        }
+
+        // Annulation logique: statut Annulée, pas de suppression
         $invoice->update(['statut_facture' => 'Annulée']);
-        $invoice->delete();
-        return ApiResponse::success(null, 'invoices.cancelled');
+
+        // Audit
+        AuditService::log('INVOICE_CANCELLED', 'factures', $invoice->id, 'Facture annulée par l\'utilisateur');
+
+        return ApiResponse::success($invoice->fresh(), 'invoices.cancelled');
     }
 
     private function authorizeInvoice(Invoice $invoice): void

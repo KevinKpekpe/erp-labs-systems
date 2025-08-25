@@ -16,6 +16,11 @@ export default function ProtectedRoute({ children, kind, requiredPermission }: P
     return <Navigate to={kind === "superadmin" ? "/superadmin" : "/signin"} replace />;
   }
 
+  // Redirection obligatoire vers changement de mot de passe (uniquement côté company)
+  if (state.kind === "company" && state.user?.must_change_password) {
+    return <Navigate to="/must-change-password" replace />;
+  }
+
   if (requiredPermission) {
     if (state.kind !== "superadmin") {
       if ((state.permissions?.length ?? 0) === 0) return <Navigate to={"/403"} replace />;

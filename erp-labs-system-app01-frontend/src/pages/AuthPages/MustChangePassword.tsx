@@ -8,7 +8,7 @@ import { useNavigate } from "react-router";
 import { apiFetch } from "../../lib/apiClient";
 
 export default function MustChangePassword() {
-  const { state, logout } = useAuth();
+  const { state, logout, refreshMe } = useAuth();
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -36,6 +36,7 @@ export default function MustChangePassword() {
         }),
       }, "company");
       setSuccess("Mot de passe changé avec succès.");
+      await refreshMe();
       navigate("/");
     } catch (err: unknown) {
       const e = err as { message?: string };

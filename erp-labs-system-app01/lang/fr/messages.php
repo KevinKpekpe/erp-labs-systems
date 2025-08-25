@@ -52,6 +52,14 @@ return [
     'payments' => [
         'amount_exceeds_total' => 'Le montant payé dépasse le reste à payer.',
     ],
+    'invoices' => [
+        'list' => 'Factures récupérées avec succès.',
+        'details' => 'Détails de la facture récupérés avec succès.',
+        'cancelled' => 'Facture annulée avec succès.',
+        'cannot_cancel_with_payments' => 'Impossible d\'annuler une facture avec des paiements enregistrés. Utilisez une note de crédit.',
+        'cannot_cancel_paid' => 'Impossible d\'annuler une facture déjà payée.',
+        'already_cancelled' => 'La facture est déjà annulée.',
+    ],
 ];
 
 

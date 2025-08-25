@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router';
 import { Helmet } from 'react-helmet-async';
 import { apiFetch } from '../../lib/apiClient';
+import { EyeIcon, PencilIcon, TrashBinIcon, CheckLineIcon } from '../../icons';
 
 type Demande = {
   id: number;
@@ -222,16 +223,16 @@ export default function DemandeList() {
                       <td className="py-5 px-4">
                         <div className="flex items-center space-x-3.5 justify-end">
                           {!trashed ? (<>
-                            <Link to={`/demandes/${d.id}`} className="inline-flex items-center justify-center rounded-md px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800">Détails</Link>
+                            <Link to={`/demandes/${d.id}`} className="text-brand-600 hover:text-brand-700" title="Détails"><EyeIcon className="h-5 w-5" /></Link>
                             {d.statut_demande === 'En attente' && (
-                              <Link to={`/demandes/${d.id}/modifier`} className="inline-flex items-center justify-center rounded-md px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800">Modifier</Link>
+                              <Link to={`/demandes/${d.id}/modifier`} className="text-brand-600 hover:text-brand-700" title="Modifier"><PencilIcon className="h-5 w-5" /></Link>
                             )}
                             {(() => { const cannotCancel = ['en cours','terminée','annulée'].includes(d.statut_demande.toLowerCase()); return (
-                              <button disabled={cannotCancel} onClick={async () => { if (cannotCancel) return; await apiFetch(`/v1/exam-requests/${d.id}`, { method: 'DELETE' }); fetchData(); }} className="inline-flex items-center justify-center rounded-md px-3 py-1.5 text-sm text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20 disabled:opacity-50">Annuler</button>
+                              <button disabled={cannotCancel} onClick={async () => { if (cannotCancel) return; await apiFetch(`/v1/exam-requests/${d.id}`, { method: 'DELETE' }); fetchData(); }} className="text-red-600 hover:text-red-700 disabled:opacity-50" title="Annuler"><TrashBinIcon className="h-5 w-5" /></button>
                             ); })()}
                           </>) : (<>
-                            <button onClick={() => restore(d.id)} className="inline-flex items-center justify-center rounded-md px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800">Restaurer</button>
-                            <button onClick={() => forceDelete(d.id)} className="inline-flex items-center justify-center rounded-md px-3 py-1.5 text-sm text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20">Supprimer</button>
+                            <button onClick={() => restore(d.id)} className="text-green-600 hover:text-green-700" title="Restaurer"><CheckLineIcon className="h-5 w-5" /></button>
+                            <button onClick={() => forceDelete(d.id)} className="text-red-600 hover:text-red-700" title="Supprimer définitivement"><TrashBinIcon className="h-5 w-5" /></button>
                           </>)}
                         </div>
                       </td>

@@ -4,6 +4,7 @@ import { Link, useLocation, useNavigate } from "react-router";
 import Input from "../../components/form/input/InputField";
 import Alert from "../../components/ui/alert/Alert";
 import { apiFetch } from "../../lib/apiClient";
+import { EyeIcon, PencilIcon, TrashBinIcon, CheckLineIcon } from "../../icons";
 
 type RoleRow = { id: number; code: string; nom_role: string; permissions?: Array<{ id: number; code: string; action: string; module: string }> };
 function isRecord(v: unknown): v is Record<string, unknown> { return typeof v === 'object' && v !== null; }
@@ -103,14 +104,14 @@ export default function RolesList() {
                     <td className="py-4 px-4">
                       {!trashed ? (
                         <div className="flex items-center gap-3">
-                          <Link to={`/users/roles/${r.id}`} className="text-brand-600 hover:underline">Voir</Link>
-                          <Link to={`/users/roles/${r.id}/modifier`} className="text-brand-600 hover:underline">Modifier</Link>
-                          <button onClick={() => remove(r.id)} className="text-red-600 hover:underline">Supprimer</button>
+                          <Link to={`/users/roles/${r.id}`} className="text-brand-600 hover:text-brand-700" title="Voir"><EyeIcon className="h-5 w-5" /></Link>
+                          <Link to={`/users/roles/${r.id}/modifier`} className="text-brand-600 hover:text-brand-700" title="Modifier"><PencilIcon className="h-5 w-5" /></Link>
+                          <button onClick={() => remove(r.id)} className="text-red-600 hover:text-red-700" title="Supprimer"><TrashBinIcon className="h-5 w-5" /></button>
                         </div>
                       ) : (
                         <div className="flex items-center gap-3">
-                          <button onClick={() => restore(r.id)} className="text-green-600 hover:underline">Restaurer</button>
-                          <button onClick={() => remove(r.id, true)} className="text-red-600 hover:underline">Supprimer définitivement</button>
+                          <button onClick={() => restore(r.id)} className="text-green-600 hover:text-green-700" title="Restaurer"><CheckLineIcon className="h-5 w-5" /></button>
+                          <button onClick={() => remove(r.id, true)} className="text-red-600 hover:text-red-700" title="Supprimer définitivement"><TrashBinIcon className="h-5 w-5" /></button>
                         </div>
                       )}
                     </td>

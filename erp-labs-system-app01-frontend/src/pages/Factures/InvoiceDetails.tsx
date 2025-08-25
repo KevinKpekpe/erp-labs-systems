@@ -91,7 +91,7 @@ export default function InvoiceDetails() {
             {remainingToPay > 0 && invoice?.statut_facture !== 'Annulée' && (
               <button onClick={() => setModal({ open: true, methode_paiement: 'Caisse' })} className="inline-flex items-center justify-center rounded-md bg-brand-500 px-6 py-2.5 text-center font-medium text-white hover:bg-opacity-90">Ajouter paiement</button>
             )}
-            <button onClick={cancelInvoice} className="inline-flex items-center justify-center rounded-md border border-red-300 bg-white px-6 py-2.5 text-center font-medium text-red-700 hover:bg-red-50 disabled:opacity-50" disabled={invoice?.statut_facture === 'Payée'}>Annuler</button>
+            <button onClick={cancelInvoice} className="inline-flex items-center justify-center rounded-md border border-red-300 bg-white px-6 py-2.5 text-center font-medium text-red-700 hover:bg-red-50 disabled:opacity-50" disabled={invoice?.statut_facture === 'Payée' || invoice?.statut_facture === 'Annulée'}>Annuler</button>
           </div>
         </div>
 
