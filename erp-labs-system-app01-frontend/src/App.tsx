@@ -49,6 +49,7 @@ import ServerError from "./pages/OtherPage/ServerError";
 import { ExamList, ExamCreate, ExamEdit, ExamDetails } from "./pages/Examens";
 import { DemandeList, DemandeCreate, DemandeDetails, DemandeEdit } from "./pages/Demandes";
 import { InvoicesList, InvoiceDetails, PaymentsList, BillingDashboard, RolesList, RoleForm, RoleDetails } from "./pages";
+import { UsersList, UserForm, UserDetails } from "./pages";
 
 
 function CompanyGuard({ children }: { children: React.ReactElement }) {
@@ -157,6 +158,12 @@ export default function App() {
               <Route path="/users/roles/nouveau" element={<ProtectedRoute kind="company" requiredPermission={{ action: "CREATE", module: "ROLE" }}><RoleForm /></ProtectedRoute>} />
               <Route path="/users/roles/:id" element={<ProtectedRoute kind="company" requiredPermission={{ action: "LIST", module: "ROLE" }}><RoleDetails /></ProtectedRoute>} />
               <Route path="/users/roles/:id/modifier" element={<ProtectedRoute kind="company" requiredPermission={{ action: "UPDATE", module: "ROLE" }}><RoleForm /></ProtectedRoute>} />
+
+              {/* Utilisateurs */}
+              <Route path="/users" element={<ProtectedRoute kind="company" requiredPermission={{ action: "LIST", module: "USER" }}><UsersList /></ProtectedRoute>} />
+              <Route path="/users/nouveau" element={<ProtectedRoute kind="company" requiredPermission={{ action: "CREATE", module: "USER" }}><UserForm /></ProtectedRoute>} />
+              <Route path="/users/:id" element={<ProtectedRoute kind="company" requiredPermission={{ action: "LIST", module: "USER" }}><UserDetails /></ProtectedRoute>} />
+              <Route path="/users/:id/modifier" element={<ProtectedRoute kind="company" requiredPermission={{ action: "UPDATE", module: "USER" }}><UserForm /></ProtectedRoute>} />
               <Route path="/company-info" element={<ProtectedRoute kind="company" requiredPermission={{ action: "UPDATE", module: "COMPANY" }}><CompanyInfo /></ProtectedRoute>} />
 
               {/* Others Page */}

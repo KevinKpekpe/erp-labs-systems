@@ -9,6 +9,7 @@ use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use App\Models\Concerns\Searchable;
+use Illuminate\Support\Facades\Storage;
 
 class User extends Authenticatable
 {
@@ -70,6 +71,9 @@ class User extends Authenticatable
         ];
     }
 
+    /** @var list<string> */
+    protected $appends = ['photo_url'];
+
     // Relations
     public function company()
     {
@@ -79,5 +83,15 @@ class User extends Authenticatable
     public function roles()
     {
         return $this->belongsToMany(Role::class, 'user_roles');
+    }
+
+    public function getPhotoUrlAttribute(): ?string
+    {
+        if (!$this->photo_de_profil) {
+            return null;
+        }
+        $relative = Storage::url($this->photo_de_profil); // ex: /storage/users/xyz.jpg
+        $host = rtrim(request()->getSchemeAndHttpHost(), '/');
+        return $host . $relative; // garde le slash initial de $relative
     }
 }

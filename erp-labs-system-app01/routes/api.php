@@ -109,6 +109,7 @@ Route::prefix('v1')->group(function () {
 
 		// Company Users (1 role only)
 		Route::get('/users', [CompanyUserController::class, 'index'])->middleware('can.permission:LIST,USER');
+		Route::get('/users/{user}', [CompanyUserController::class, 'show'])->middleware('can.permission:LIST,USER');
 		Route::post('/users', [CompanyUserController::class, 'store'])->middleware('can.permission:CREATE,USER');
 		Route::post('/users/{user}', [CompanyUserController::class, 'update'])->middleware('can.permission:UPDATE,USER');
 		Route::delete('/users/{user}', [CompanyUserController::class, 'destroy'])->middleware('can.permission:DELETE,USER');

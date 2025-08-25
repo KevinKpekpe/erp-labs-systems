@@ -17,6 +17,7 @@ export default function RoleForm() {
   const [perms, setPerms] = useState<Perm[]>([]);
   const [selected, setSelected] = useState<number[]>([]);
   const [moduleFilter, setModuleFilter] = useState<string>("");
+  const [openModules, setOpenModules] = useState<Record<string, boolean>>({});
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -72,6 +73,11 @@ export default function RoleForm() {
 
   const modules = Array.from(new Set(perms.map(p => p.module))).sort((a, b) => a.localeCompare(b));
   const filteredPerms = moduleFilter ? perms.filter(p => p.module === moduleFilter) : perms;
+  const grouped = filteredPerms.reduce<Record<string, Perm[]>>((acc, p) => {
+    if (!acc[p.module]) acc[p.module] = [];
+    acc[p.module].push(p);
+    return acc;
+  }, {});
 
   return (
     <>
@@ -118,14 +124,39 @@ export default function RoleForm() {
                   >Tout décocher</button>
                 </div>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 max-h-[520px] overflow-auto pr-1">
-                {filteredPerms.map(p => (
-                  <label key={p.id} className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
-                    <input type="checkbox" className="h-4 w-4" checked={selected.includes(p.id)} onChange={() => toggle(p.id)} />
-                    <span className="text-sm text-gray-800 dark:text-gray-200">{p.module} — <span className="font-medium">{p.action}</span></span>
-                    <span className="ml-auto text-xs text-gray-500">{p.code}</span>
-                  </label>
-                ))}
+
+              <div className="space-y-3 max-h-[520px] overflow-auto pr-1">
+                {Object.entries(grouped).map(([moduleName, list]) => {
+                  const isOpen = openModules[moduleName] ?? true;
+                  const ids = list.map(p => p.id);
+                  const allSelected = ids.every(id => selected.includes(id));
+                  const partiallySelected = !allSelected && ids.some(id => selected.includes(id));
+                  return (
+                    <div key={moduleName} className="rounded-lg border border-gray-200 dark:border-gray-700">
+                      <div className="flex items-center gap-3 px-3 py-2 bg-gray-50 dark:bg-gray-800/40">
+                        <button type="button" onClick={() => setOpenModules(prev => ({ ...prev, [moduleName]: !isOpen }))} className="text-sm font-semibold text-gray-800 dark:text-gray-100">
+                          {isOpen ? '▾' : '▸'} {moduleName}
+                        </button>
+                        <span className={`ml-2 text-xs px-2 py-0.5 rounded-full ${allSelected ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' : partiallySelected ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300' : 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'}`}>{list.length}</span>
+                        <div className="ml-auto flex items-center gap-2">
+                          <button type="button" onClick={() => selectAll(ids)} className="text-xs text-brand-600 hover:underline">Cocher</button>
+                          <button type="button" onClick={() => deselectAll(ids)} className="text-xs text-gray-600 hover:underline">Décocher</button>
+                        </div>
+                      </div>
+                      {isOpen && (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 p-3">
+                          {list.map(p => (
+                            <label key={p.id} className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
+                              <input type="checkbox" className="h-4 w-4" checked={selected.includes(p.id)} onChange={() => toggle(p.id)} />
+                              <span className="text-sm text-gray-800 dark:text-gray-200">{p.action}</span>
+                              <span className="ml-auto text-xs text-gray-500">{p.code}</span>
+                            </label>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
                 {filteredPerms.length === 0 && (
                   <div className="text-sm text-gray-500 dark:text-gray-400">Aucune permission pour ce filtre.</div>
                 )}

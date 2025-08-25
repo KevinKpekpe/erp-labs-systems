@@ -23,9 +23,20 @@ class UserController extends Controller
         $q = request('q') ?? request('search');
         $users = User::where('company_id', $companyId)
             ->search($q)
+            ->with(['roles' => function ($q) { $q->select('roles.id', 'roles.code', 'roles.nom_role'); }])
             ->orderBy('username')
             ->get();
         return ApiResponse::success($users);
+    }
+
+    public function show(User $user)
+    {
+        $this->authorizeUser($user);
+        $user->load(['roles' => function ($q) {
+            $q->select('roles.id', 'roles.code', 'roles.nom_role')
+              ->with(['permissions' => function ($p) { $p->select('permissions.id', 'permissions.code', 'permissions.action', 'permissions.module'); }]);
+        }]);
+        return ApiResponse::success($user, 'auth.me_success');
     }
 
     public function store(UserStoreRequest $request)
