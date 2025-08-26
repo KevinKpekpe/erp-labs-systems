@@ -3,6 +3,7 @@ import { Link } from "react-router";
 import { PlusIcon, SearchIcon, EyeIcon, PencilIcon, TrashIcon, RestoreIcon } from "../../../icons";
 import { apiFetch } from "../../../lib/apiClient";
 import PageMeta from "../../../components/common/PageMeta";
+import { ENV } from "../../../config/env";
 
 interface Company {
   id: number;
@@ -37,7 +38,7 @@ export default function CompanyList() {
       setError(null);
       const endpoint = showTrashed ? "/v1/superadmin/companies-trashed" : "/v1/superadmin/companies";
       
-      const res = await apiFetch<any>(endpoint, { method: "GET" }, "superadmin");
+      const res = await apiFetch<{ success: boolean; data: Company[] }>(endpoint, { method: "GET" }, "superadmin");
       
       if (res.success && res.data) {
         setCompanies(res.data);
@@ -108,7 +109,7 @@ export default function CompanyList() {
         hour: '2-digit',
         minute: '2-digit'
       });
-    } catch (error) {
+    } catch {
       return "Date invalide";
     }
   };
@@ -126,6 +127,15 @@ export default function CompanyList() {
         Active
       </span>
     );
+  };
+
+  // Fonction pour construire l'URL du logo (style identique aux autres pages)
+  const backendBase = (ENV.API_BASE_URL || "").replace(/\/api\/?$/, "");
+  const buildLogoUrl = (logoPath: string | null): string | null => {
+    if (!logoPath) return null;
+    if (logoPath.startsWith("http")) return logoPath;
+    if (logoPath.startsWith("/")) return `${backendBase}${logoPath}`;
+    return `${backendBase}/storage/${logoPath}`;
   };
 
   if (error) {
@@ -246,6 +256,9 @@ export default function CompanyList() {
                     Type
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    Secteur
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     Statut
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
@@ -259,7 +272,7 @@ export default function CompanyList() {
               <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
                 {filteredCompanies.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
+                    <td colSpan={7} className="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
                       <div className="flex flex-col items-center">
                         <div className="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mb-4">
                           <SearchIcon className="w-8 h-8 text-gray-400" />
@@ -280,9 +293,9 @@ export default function CompanyList() {
                           <div className="flex-shrink-0 h-12 w-12">
                             {company.logo ? (
                               <img
-                                className="h-12 w-12 rounded-lg object-cover border border-gray-200 dark:border-gray-700"
-                                src={company.logo}
+                                src={buildLogoUrl(company.logo) || ""}
                                 alt={`Logo ${company.nom_company}`}
+                                className="h-12 w-12 rounded-full object-cover border border-gray-200 dark:border-gray-700"
                                 onError={(e) => {
                                   const target = e.target as HTMLImageElement;
                                   target.style.display = 'none';
@@ -290,7 +303,7 @@ export default function CompanyList() {
                                 }}
                               />
                             ) : null}
-                            <div className={`h-12 w-12 rounded-lg bg-blue-100 dark:bg-gray-700 flex items-center justify-center ${company.logo ? 'hidden' : ''}`}>
+                            <div className={`h-12 w-12 rounded-full bg-blue-100 dark:bg-gray-700 flex items-center justify-center ${company.logo ? 'hidden' : ''}`}>
                               <span className="text-lg font-bold text-blue-600 dark:text-blue-400">
                                 {company.nom_company.charAt(0).toUpperCase()}
                               </span>
@@ -320,16 +333,18 @@ export default function CompanyList() {
                         )}
                       </td>
                       <td className="px-6 py-4">
-                        <div className="space-y-1">
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400">
-                            {company.type_etablissement}
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400">
+                          {company.type_etablissement}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        {company.secteur_activite ? (
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400">
+                            {company.secteur_activite}
                           </span>
-                          {company.secteur_activite && (
-                            <div className="text-xs text-gray-500 dark:text-gray-400">
-                              {company.secteur_activite}
-                            </div>
-                          )}
-                        </div>
+                        ) : (
+                          <span className="text-sm text-gray-400 dark:text-gray-500">-</span>
+                        )}
                       </td>
                       <td className="px-6 py-4">
                         {getStatusBadge(company.deleted_at)}
