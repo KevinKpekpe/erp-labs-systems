@@ -11,6 +11,8 @@ type Demande = {
   statut_demande: 'En attente' | 'En cours' | 'Terminée' | 'Annulée';
   patient?: { id: number; nom: string; postnom?: string | null; prenom: string };
   medecin?: { id: number; nom: string; prenom: string };
+  medecin_prescripteur_externe_nom?: string | null;
+  medecin_prescripteur_externe_prenom?: string | null;
 };
 
 type Paginated<T> = {
@@ -217,7 +219,11 @@ export default function DemandeList() {
                     <tr key={d.id}>
                       <td className="py-5 px-4 pl-9 xl:pl-11"><div className="flex flex-col"><h5 className="font-medium text-gray-800 dark:text-white/90">{d.code}</h5></div></td>
                       <td className="py-5 px-4"><p className="text-gray-800 dark:text-white/90">{d.patient ? `${d.patient.nom} ${d.patient.postnom || ''} ${d.patient.prenom}`.trim() : '—'}</p></td>
-                      <td className="py-5 px-4"><p className="text-gray-800 dark:text-white/90">{d.medecin ? `${d.medecin.nom} ${d.medecin.prenom}` : '—'}</p></td>
+                      <td className="py-5 px-4">
+                        <p className="text-gray-800 dark:text-white/90">
+                          {d.medecin ? `${d.medecin.nom} ${d.medecin.prenom}` : (d.medecin_prescripteur_externe_nom ? `${d.medecin_prescripteur_externe_nom} ${d.medecin_prescripteur_externe_prenom || ''}`.trim() : '—')}
+                        </p>
+                      </td>
                       <td className="py-5 px-4"><p className="text-gray-800 dark:text-white/90">{new Date(d.date_demande).toLocaleString()}</p></td>
                       <td className="py-5 px-4"><p className="text-gray-800 dark:text-white/90">{d.statut_demande}</p></td>
                       <td className="py-5 px-4">

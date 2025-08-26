@@ -52,7 +52,8 @@ class ExamRequestController extends Controller
         $dir = request('dir', 'desc') === 'asc' ? 'asc' : 'desc';
 
         $query = ExamRequest::where('company_id', $companyId)
-            ->with(['patient:id,nom,postnom,prenom','medecin:id,nom,prenom']);
+            ->with(['patient:id,nom,postnom,prenom','medecin:id,nom,prenom'])
+            ->select(['*', 'medecin_prescripteur_externe_nom', 'medecin_prescripteur_externe_prenom']);
 
         if (!empty($q)) { $query->search($q); }
         if (!empty($statut)) { $query->where('statut_demande', $statut); }
@@ -89,6 +90,7 @@ class ExamRequestController extends Controller
         $requests = ExamRequest::where('company_id', $companyId)
             ->where('patient_id', $patient->id)
             ->with(['patient:id,nom,postnom,prenom','medecin:id,nom,prenom'])
+            ->select(['*', 'medecin_prescripteur_externe_nom', 'medecin_prescripteur_externe_prenom'])
             ->search($q)
             ->orderByDesc('date_demande')
             ->paginate($perPage);
@@ -104,6 +106,7 @@ class ExamRequestController extends Controller
         $requests = ExamRequest::where('company_id', $companyId)
             ->where('medecin_prescripteur_id', $doctor->id)
             ->with(['patient:id,nom,postnom,prenom','medecin:id,nom,prenom'])
+            ->select(['*', 'medecin_prescripteur_externe_nom', 'medecin_prescripteur_externe_prenom'])
             ->search($q)
             ->orderByDesc('date_demande')
             ->paginate($perPage);

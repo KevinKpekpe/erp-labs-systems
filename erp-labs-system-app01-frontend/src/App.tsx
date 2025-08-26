@@ -17,6 +17,7 @@ import BasicTables from "./pages/Tables/BasicTables";
 import FormElements from "./pages/Forms/FormElements";
 import Blank from "./pages/Blank";
 import AppLayout from "./layout/AppLayout";
+import SuperAdminLayout from "./layout/SuperAdminLayout";
 import { ScrollToTop } from "./components/common/ScrollToTop";
 import Home from "./pages/Dashboard/Home";
 import PatientList from "./pages/Patients/PatientList";
@@ -42,6 +43,7 @@ import LaboratoryStockDashboard from "./pages/Stocks/LaboratoryStockDashboard";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 import SuperAdminHome from "./pages/SuperAdmin/Home";
+import { CompanyList, CompanyCreate, CompanyDetails, CompanyEdit } from "./pages/SuperAdmin/Companies";
 import MustChangePassword from "./pages/AuthPages/MustChangePassword";
 import UserProfiles from "./pages/UserProfiles";
 import Forbidden from "./pages/OtherPage/Forbidden";
@@ -189,19 +191,25 @@ export default function App() {
               <Route path="/bar-chart" element={<BarChart />} />
             </Route>
 
-            {/* Espace SuperAdmin (protégé SuperAdmin) */}
-            <Route element={
-              <ProtectedRoute kind="superadmin">
-                <SuperAdminHome />
-              </ProtectedRoute>
-            }>
-              <Route path="/superadmin/home" element={<SuperAdminHome />} />
-            </Route>
-
             {/* Auth Layout protégées pour invités seulement */}
             <Route path="/signin" element={<AuthOnlyWhenLoggedOut><SignIn /></AuthOnlyWhenLoggedOut>} />
             <Route path="/superadmin" element={<AuthOnlyWhenLoggedOut><SignInSuperAdmin /></AuthOnlyWhenLoggedOut>} />
             <Route path="/must-change-password" element={<MustChangePassword />} />
+
+            {/* Espace SuperAdmin (protégé SuperAdmin) */}
+            <Route element={
+              <ProtectedRoute kind="superadmin">
+                <SuperAdminLayout />
+              </ProtectedRoute>
+            }>
+              <Route path="/superadmin/home" element={<SuperAdminHome />} />
+              
+              {/* Gestion des Compagnies */}
+              <Route path="/superadmin/companies" element={<CompanyList />} />
+              <Route path="/superadmin/companies/new" element={<CompanyCreate />} />
+              <Route path="/superadmin/companies/:id" element={<CompanyDetails />} />
+              <Route path="/superadmin/companies/:id/edit" element={<CompanyEdit />} />
+            </Route>
             <Route path="/403" element={<Forbidden />} />
             <Route path="/500" element={<ServerError />} />
 

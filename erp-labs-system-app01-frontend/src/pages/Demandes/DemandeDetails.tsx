@@ -8,7 +8,7 @@ import { useAuth } from '../../context/AuthContext';
 import { ENV } from '../../config/env';
 
 type Detail = { id: number; examen_id: number; resultat?: string | null; date_resultat?: string | null; examen?: { id: number; nom_examen: string; code?: string | null; code_examen?: string | null; unites_mesure?: string | null; unite?: string | null; unite_mesure?: string | null; unite_mesure_label?: string | null; valeurs_reference?: string | null; reference?: string | null; valeur_reference?: string | null; intervalle_reference?: string | null; reference_min?: string | number | null; reference_max?: string | number | null; type_echantillon?: string | null } };
-type Demande = { id: number; code: string; statut_demande: string; note?: string | null; date_demande?: string | null; patient?: { id: number; nom: string; postnom?: string | null; prenom: string; sexe?: string | null; date_naissance?: string | null; contact?: string | null; adresse?: string | null } | null; medecin?: { id: number; nom: string; prenom: string; matricule?: string | null; code?: string | null; identifiant?: string | null } | null; details: Detail[] };
+type Demande = { id: number; code: string; statut_demande: string; note?: string | null; date_demande?: string | null; patient?: { id: number; nom: string; postnom?: string | null; prenom: string; sexe?: string | null; date_naissance?: string | null; contact?: string | null; adresse?: string | null } | null; medecin?: { id: number; nom: string; prenom: string; matricule?: string | null; code?: string | null; identifiant?: string | null } | null; medecin_prescripteur_externe_nom?: string | null; medecin_prescripteur_externe_prenom?: string | null; details: Detail[] };
 
 export default function DemandeDetails() {
   const { id } = useParams();
@@ -216,7 +216,10 @@ export default function DemandeDetails() {
             <section className="mt-6 grid gap-4 md:grid-cols-2 text-sm">
               <div className="rounded-md border border-gray-200 p-4 dark:border-gray-800">
                 <p className="mb-2 font-semibold text-gray-700 dark:text-gray-200">Médecin prescripteur</p>
-                <p className="text-gray-800 font-medium dark:text-gray-100">{data.medecin ? `Dr. ${data.medecin.nom} ${data.medecin.prenom}` : '-'}</p>
+                <p className="text-gray-800 font-medium dark:text-gray-100">
+                  {data.medecin ? `Dr. ${data.medecin.nom} ${data.medecin.prenom}` : 
+                   (data.medecin_prescripteur_externe_nom ? `Dr. ${data.medecin_prescripteur_externe_nom} ${data.medecin_prescripteur_externe_prenom || ''}`.trim() : '—')}
+                </p>
                 <p className="text-gray-600 dark:text-gray-400">Service: —</p>
                 <p className="text-gray-600 dark:text-gray-400">Matricule: <span className="font-medium text-gray-800 dark:text-gray-100">{data.medecin?.matricule || data.medecin?.code || data.medecin?.identifiant || '—'}</span></p>
               </div>

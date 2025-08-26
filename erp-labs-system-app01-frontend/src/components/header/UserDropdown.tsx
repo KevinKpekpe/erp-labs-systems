@@ -1,12 +1,27 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { DropdownItem } from "../ui/dropdown/DropdownItem";
 import { Dropdown } from "../ui/dropdown/Dropdown";
 import { Link } from "react-router";
 import { useAuth } from "../../context/AuthContext";
+import { ENV } from "../../config/env";
 
 export default function UserDropdown() {
   const [isOpen, setIsOpen] = useState(false);
   const { state, logout } = useAuth();
+
+  const backendBase = (ENV.API_BASE_URL || "").replace(/\/api\/?$/, "");
+  const photoUrl = useMemo(() => {
+    const u = state.user;
+    if (!u) return null;
+    const raw = u.photo_url as string | undefined;
+    if (raw && /^https?:\/\//i.test(raw)) return raw;
+    if (raw && raw.startsWith('/')) return `${backendBase}${raw}`;
+    if (u.photo_de_profil) {
+      const path = String(u.photo_de_profil).replace(/^\/+/, '');
+      return `${backendBase}/storage/${path}`;
+    }
+    return null;
+  }, [state.user, backendBase]);
 
   function toggleDropdown() {
     setIsOpen(!isOpen);
@@ -21,8 +36,14 @@ export default function UserDropdown() {
         onClick={toggleDropdown}
         className="flex items-center text-gray-700 dropdown-toggle dark:text-gray-400"
       >
-        <span className="mr-3 overflow-hidden rounded-full h-11 w-11">
-          <img src="/images/user/owner.jpg" alt="User" />
+        <span className="mr-3 overflow-hidden rounded-full h-11 w-11 bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+          {photoUrl ? (
+            <img src={photoUrl} alt="Photo de profil" className="h-full w-full object-cover" />
+          ) : (
+            <svg className="h-6 w-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+            </svg>
+          )}
         </span>
 
         <span className="block mr-1 font-medium text-theme-sm text-gray-700 dark:text-gray-400">
