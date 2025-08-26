@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router";
+import { Link, useLocation, useNavigate } from "react-router";
 import { PlusIcon, SearchIcon, EyeIcon, PencilIcon, TrashIcon, RestoreIcon } from "../../../icons";
 import { apiFetch } from "../../../lib/apiClient";
 import PageMeta from "../../../components/common/PageMeta";
+import Alert from "../../../components/ui/alert/Alert";
 import { ENV } from "../../../config/env";
 
 interface Company {
@@ -22,11 +23,28 @@ interface Company {
 }
 
 export default function CompanyList() {
+  const location = useLocation();
+  const navigate = useNavigate();
   const [companies, setCompanies] = useState<Company[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [showTrashed, setShowTrashed] = useState(false);
+
+  useEffect(() => {
+    const state = (location.state as { success?: string } | null) || null;
+    if (state?.success) {
+      setSuccessMessage(state.success);
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [location.state, location.pathname, navigate]);
+
+  useEffect(() => {
+    if (!successMessage) return;
+    const t = setTimeout(() => setSuccessMessage(null), 5000);
+    return () => clearTimeout(t);
+  }, [successMessage]);
 
   useEffect(() => {
     fetchCompanies();
@@ -57,6 +75,7 @@ export default function CompanyList() {
   const handleRestore = async (id: number) => {
     try {
       await apiFetch(`/v1/superadmin/companies/${id}/restore`, { method: "POST" }, "superadmin");
+      setSuccessMessage("Compagnie restaurée avec succès");
       fetchCompanies();
     } catch (error) {
       console.error("Erreur lors de la restauration:", error);
@@ -68,6 +87,7 @@ export default function CompanyList() {
     if (window.confirm("Êtes-vous sûr de vouloir supprimer définitivement cette compagnie ? Cette action est irréversible.")) {
       try {
         await apiFetch(`/v1/superadmin/companies/${id}/force`, { method: "DELETE" }, "superadmin");
+        setSuccessMessage("Compagnie supprimée définitivement avec succès");
         fetchCompanies();
       } catch (error) {
         console.error("Erreur lors de la suppression définitive:", error);
@@ -80,6 +100,7 @@ export default function CompanyList() {
     if (window.confirm("Êtes-vous sûr de vouloir supprimer cette compagnie ?")) {
       try {
         await apiFetch(`/v1/superadmin/companies/${id}`, { method: "DELETE" }, "superadmin");
+        setSuccessMessage("Compagnie supprimée avec succès");
         fetchCompanies();
       } catch (error) {
         console.error("Erreur lors de la suppression:", error);
@@ -188,6 +209,19 @@ export default function CompanyList() {
       />
       
       <div className="p-6">
+        {/* Messages flash */}
+        {successMessage && (
+          <div className="mb-6">
+            <Alert variant="success" title="Succès" message={successMessage} />
+          </div>
+        )}
+        
+        {error && (
+          <div className="mb-6">
+            <Alert variant="error" title="Erreur" message={error} />
+          </div>
+        )}
+
         {/* En-tête */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
           <div>

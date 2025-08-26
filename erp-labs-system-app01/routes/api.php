@@ -51,6 +51,7 @@ Route::prefix('v1/superadmin')->group(function () {
 
 		// Companies
 		Route::get('/companies', [SuperAdminCompanyController::class, 'index']);
+		Route::get('/companies/{company}', [SuperAdminCompanyController::class, 'show']);
 		Route::post('/companies', [SuperAdminCompanyController::class, 'store']);
 		Route::post('/companies/{company}', [SuperAdminCompanyController::class, 'update']);
 		Route::delete('/companies/{company}', [SuperAdminCompanyController::class, 'destroy']);

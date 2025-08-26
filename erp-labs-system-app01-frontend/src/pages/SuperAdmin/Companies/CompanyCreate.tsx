@@ -3,6 +3,7 @@ import { useNavigate } from "react-router";
 import { ArrowLeftIcon, PlusIcon, TrashIcon } from "../../../icons";
 import { apiFetch } from "../../../lib/apiClient";
 import PageMeta from "../../../components/common/PageMeta";
+import Alert from "../../../components/ui/alert/Alert";
 
 interface CompanyFormData {
   nom_company: string;
@@ -19,6 +20,8 @@ interface CompanyFormData {
 export default function CompanyCreate() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [formData, setFormData] = useState<CompanyFormData>({
@@ -94,13 +97,19 @@ export default function CompanyCreate() {
       );
 
       if (response.success) {
-        alert("Compagnie créée avec succès ! Un email a été envoyé à l'administrateur avec ses identifiants.");
-        navigate("/superadmin/companies");
+        setSuccessMessage("Compagnie créée avec succès ! Un email a été envoyé à l'administrateur avec ses identifiants.");
+        
+        // Redirect after a short delay
+        setTimeout(() => {
+          navigate("/superadmin/companies", {
+            state: { success: "Compagnie créée avec succès ! Un email a été envoyé à l'administrateur avec ses identifiants." }
+          });
+        }, 1500);
       }
     } catch (error: any) {
       console.error("Erreur lors de la création:", error);
       const message = error.response?.data?.message || "Erreur lors de la création de la compagnie";
-      alert(message);
+      setError(message);
     } finally {
       setLoading(false);
     }
@@ -114,6 +123,19 @@ export default function CompanyCreate() {
       />
       
       <div className="p-6">
+        {/* Messages flash */}
+        {successMessage && (
+          <div className="mb-6">
+            <Alert variant="success" title="Succès" message={successMessage} />
+          </div>
+        )}
+        
+        {error && (
+          <div className="mb-6">
+            <Alert variant="error" title="Erreur" message={error} />
+          </div>
+        )}
+
         {/* En-tête */}
         <div className="mb-6">
           <div className="flex items-center gap-4">

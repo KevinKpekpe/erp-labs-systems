@@ -29,6 +29,12 @@ class CompanyController extends Controller
         return ApiResponse::success($companies, 'auth.me_success');
     }
 
+    public function show(Company $company)
+    {
+        // L'accesseur adminUser sera automatiquement chargé
+        return ApiResponse::success($company, 'Compagnie récupérée avec succès');
+    }
+
     public function store(CompanyStoreRequest $request)
     {
         $data = $request->validated();

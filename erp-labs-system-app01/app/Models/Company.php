@@ -41,6 +41,16 @@ class Company extends Model
         return $this->hasMany(Role::class);
     }
 
+    public function getAdminUserAttribute()
+    {
+        return $this->users()
+            ->whereHas('roles', function ($query) {
+                $query->where('nom_role', 'ADMIN');
+            })
+            ->select('id', 'username', 'email', 'nom', 'postnom')
+            ->first();
+    }
+
     public function patients()
     {
         return $this->hasMany(Patient::class);
