@@ -1,10 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
 import { Helmet } from 'react-helmet-async';
 import { apiFetch } from '../../lib/apiClient';
 import Modal from '../../components/ui/Modal';
 import Badge from '../../components/ui/badge/Badge';
 import { useAuth } from '../../context/AuthContext';
+import { ENV } from '../../config/env';
 
 type Detail = { id: number; examen_id: number; resultat?: string | null; date_resultat?: string | null; examen?: { id: number; nom_examen: string; code?: string | null; code_examen?: string | null; unites_mesure?: string | null; unite?: string | null; unite_mesure?: string | null; unite_mesure_label?: string | null; valeurs_reference?: string | null; reference?: string | null; valeur_reference?: string | null; intervalle_reference?: string | null; reference_min?: string | number | null; reference_max?: string | number | null; type_echantillon?: string | null } };
 type Demande = { id: number; code: string; statut_demande: string; note?: string | null; date_demande?: string | null; patient?: { id: number; nom: string; postnom?: string | null; prenom: string; sexe?: string | null; date_naissance?: string | null; contact?: string | null; adresse?: string | null } | null; medecin?: { id: number; nom: string; prenom: string; matricule?: string | null; code?: string | null; identifiant?: string | null } | null; details: Detail[] };
@@ -18,6 +19,17 @@ export default function DemandeDetails() {
   const [error, setError] = useState<string | null>(null);
   // Pas de choix FIFO/FEFO ici (non pertinent sur cette page)
   const [resultModal, setResultModal] = useState<{ isOpen: boolean; detail: Detail | null; value: string }>({ isOpen: false, detail: null, value: '' });
+
+  const backendBase = (ENV.API_BASE_URL || "").replace(/\/api\/?$/, "");
+  const logoUrl = useMemo(() => {
+    const c = state.company as any;
+    if (!c) return null;
+    const logo = c.logo as string | undefined;
+    if (!logo) return null;
+    if (/^https?:\/\//i.test(logo)) return logo;
+    const path = String(logo).replace(/^\/+/, '');
+    return `${backendBase}/storage/${path}`;
+  }, [state.company, backendBase]);
 
   const fetchOne = async () => {
     if (!id) return;
@@ -186,8 +198,8 @@ export default function DemandeDetails() {
 
               <div className="flex flex-col items-end gap-3">
                 <div className="h-12 w-12 rounded-lg border border-gray-300 p-1.5 text-gray-500 dark:border-gray-700 dark:text-gray-400 overflow-hidden">
-                  {state?.company?.logo ? (
-                    <img src={state.company.logo} alt="Logo compagnie" className="h-full w-full object-contain" />
+                  {logoUrl ? (
+                    <img src={logoUrl} alt="Logo compagnie" className="h-full w-full object-contain" />
                   ) : (
                     <img src="/images/logo/logo-icon.svg" alt="Logo" className="h-full w-full object-contain opacity-80 dark:opacity-70" />
                   )}

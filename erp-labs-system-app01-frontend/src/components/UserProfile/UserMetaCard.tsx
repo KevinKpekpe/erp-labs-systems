@@ -1,14 +1,49 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useMemo } from "react";
 import { useModal } from "../../hooks/useModal";
 import { Modal } from "../ui/modal";
 import Button from "../ui/button/Button";
 import Input from "../form/input/InputField";
 import Label from "../form/Label";
+import { apiFetch } from "../../lib/apiClient";
+import { useAuth } from "../../context/AuthContext";
+import { ENV } from "../../config/env";
 
 export default function UserMetaCard() {
   const { isOpen, openModal, closeModal } = useModal();
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { state, refreshMe } = useAuth();
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+
+  const backendBase = (ENV.API_BASE_URL || "").replace(/\/api\/?$/, "");
+  const photoUrl = useMemo(() => {
+    const u = state.user as any;
+    if (!u) return null;
+    const raw = u.photo_url as string | undefined;
+    if (raw && /^https?:\/\//i.test(raw)) return raw;
+    if (raw && raw.startsWith('/')) return `${backendBase}${raw}`;
+    if (u.photo_de_profil) {
+      const path = String(u.photo_de_profil).replace(/^\/+/, '');
+      return `${backendBase}/storage/${path}`;
+    }
+    return null;
+  }, [state.user, backendBase]);
+
+  const primaryRole = state.roles?.[0]?.nom_role || "-";
+  const isActive = (state.user as any)?.is_active === true;
+  const permissions = state.permissions || [];
+  const permsByModule = useMemo(() => {
+    const map: Record<string, string[]> = {};
+    permissions.forEach((p) => {
+      const mod = (p.module || '').toUpperCase();
+      const act = (p.action || '').toUpperCase();
+      if (!map[mod]) map[mod] = [];
+      if (!map[mod].includes(act)) map[mod].push(act);
+    });
+    return map;
+  }, [permissions]);
 
   const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -21,11 +56,38 @@ export default function UserMetaCard() {
     }
   };
 
-  const handleSave = () => {
-    // Handle save logic here
-    console.log("Saving changes...");
-    closeModal();
-    setSelectedImage(null); // Reset image preview
+  const handleSave = async () => {
+    try {
+      // Changement de mot de passe si les champs sont remplis
+      if (currentPassword && newPassword && confirmPassword) {
+        if (newPassword === confirmPassword) {
+          await apiFetch('/v1/auth/change-password', {
+            method: 'POST',
+            body: JSON.stringify({
+              current_password: currentPassword,
+              new_password: newPassword,
+              new_password_confirmation: confirmPassword,
+            }),
+          }, 'company');
+          setCurrentPassword(""); setNewPassword(""); setConfirmPassword("");
+        } else {
+          // si non identiques, ne rien casser visuellement
+        }
+      }
+      // Upload photo si sélectionnée
+      if (fileInputRef.current?.files?.[0]) {
+        const fd = new FormData();
+        fd.set('photo_de_profil', fileInputRef.current.files[0]);
+        await apiFetch('/v1/auth/profile', { method: 'POST', body: fd, headers: { Accept: 'application/json' } }, 'company');
+        setSelectedImage(null);
+        if (fileInputRef.current) fileInputRef.current.value = '';
+      }
+      await refreshMe();
+    } catch {
+      // garder design, silencieux
+    } finally {
+      closeModal();
+    }
   };
 
   const handleClose = () => {
@@ -47,7 +109,7 @@ export default function UserMetaCard() {
                 Rôle Principal
               </p>
               <p className="text-sm font-medium text-gray-800 dark:text-white">
-                Technicien de Laboratoire
+                {primaryRole}
               </p>
             </div>
 
@@ -55,31 +117,37 @@ export default function UserMetaCard() {
               <p className="mb-2 text-xs leading-normal text-gray-500 dark:text-gray-400">
                 Permissions
               </p>
-              <div className="space-y-1">
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-medium text-gray-600 dark:text-gray-300">Patients:</span>
-                  <span className="inline-flex rounded-full bg-blue-100 px-2 py-1 text-xs font-medium text-blue-800 dark:bg-blue-900/20 dark:text-blue-400">
-                    READ
-                  </span>
-                  <span className="inline-flex rounded-full bg-green-100 px-2 py-1 text-xs font-medium text-green-800 dark:bg-green-900/20 dark:text-green-400">
-                    CREATE
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-medium text-gray-600 dark:text-gray-300">Examens:</span>
-                  <span className="inline-flex rounded-full bg-blue-100 px-2 py-1 text-xs font-medium text-blue-800 dark:bg-blue-900/20 dark:text-blue-400">
-                    READ
-                  </span>
-                  <span className="inline-flex rounded-full bg-green-100 px-2 py-1 text-xs font-medium text-green-800 dark:bg-green-900/20 dark:text-green-400">
-                    UPDATE
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-medium text-gray-600 dark:text-gray-300">Stocks:</span>
-                  <span className="inline-flex rounded-full bg-blue-100 px-2 py-1 text-xs font-medium text-blue-800 dark:bg-blue-900/20 dark:text-blue-400">
-                    READ
-                  </span>
-                </div>
+              <div className="space-y-2">
+                {Object.keys(permsByModule).sort().map((mod) => {
+                  const acts = [...permsByModule[mod]].sort();
+                  const chipClass = (a: string) => {
+                    const t = a.toUpperCase();
+                    if (t === 'READ') return 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400';
+                    if (t === 'CREATE') return 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400';
+                    if (t === 'UPDATE') return 'bg-amber-100 text-amber-800 dark:bg-amber-900/20 dark:text-amber-400';
+                    if (t === 'DELETE') return 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400';
+                    return 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300';
+                  };
+                  return (
+                    <div key={mod} className="flex items-center gap-2 flex-wrap">
+                      <span className="text-xs font-medium text-gray-600 dark:text-gray-300">
+                        {mod}
+                        <span className="ml-1 align-middle inline-flex items-center justify-center rounded-full bg-gray-100 px-1.5 py-0.5 text-[10px] font-medium text-gray-700 dark:bg-gray-700 dark:text-gray-300">
+                          {acts.length}
+                        </span>
+                        :
+                      </span>
+                      {acts.map((a) => (
+                        <span key={a} className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${chipClass(a)}`}>
+                          {a}
+                        </span>
+                      ))}
+                    </div>
+                  );
+                })}
+                {Object.keys(permsByModule).length === 0 && (
+                  <span className="text-xs text-gray-500 dark:text-gray-400">Aucune permission</span>
+                )}
               </div>
             </div>
 
@@ -88,7 +156,7 @@ export default function UserMetaCard() {
                 Dernière modification
               </p>
               <p className="text-sm font-medium text-gray-800 dark:text-white">
-                10/01/2025 09:15
+                {(state.user as any)?.updated_at ? new Date((state.user as any).updated_at).toLocaleString() : '-'}
               </p>
             </div>
 
@@ -97,7 +165,7 @@ export default function UserMetaCard() {
                 Statut du compte
               </p>
               <span className="inline-flex rounded-full bg-success bg-opacity-10 py-1 px-3 text-xs font-medium text-success">
-                Actif
+                {isActive ? 'Actif' : 'Inactif'}
               </span>
             </div>
 
@@ -108,11 +176,9 @@ export default function UserMetaCard() {
               <div className="flex items-center gap-2">
                 <div className="h-8 w-8 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center overflow-hidden">
                   {selectedImage ? (
-                    <img 
-                      src={selectedImage} 
-                      alt="Photo de profil" 
-                      className="h-full w-full object-cover"
-                    />
+                    <img src={selectedImage} alt="Photo de profil" className="h-full w-full object-cover" />
+                  ) : photoUrl ? (
+                    <img src={photoUrl} alt="Photo de profil" className="h-full w-full object-cover" />
                   ) : (
                     <svg className="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
@@ -120,7 +186,7 @@ export default function UserMetaCard() {
                   )}
                 </div>
                 <span className="text-sm text-gray-500 dark:text-gray-400">
-                  {selectedImage ? "Nouvelle image sélectionnée" : "Aucune photo"}
+                  {selectedImage ? "Nouvelle image sélectionnée" : (photoUrl ? "" : "Aucune photo")}
                 </span>
               </div>
             </div>
@@ -130,7 +196,7 @@ export default function UserMetaCard() {
                 Compagnie
               </p>
               <p className="text-sm font-medium text-gray-800 dark:text-white">
-                Laboratoire Central
+                {state.company?.nom_company || '-'}
               </p>
             </div>
           </div>
@@ -163,109 +229,95 @@ export default function UserMetaCard() {
         <div className="no-scrollbar relative w-full max-w-[700px] overflow-y-auto rounded-3xl bg-white p-4 dark:bg-gray-900 lg:p-11">
           <div className="px-2 pr-14">
             <h4 className="mb-2 text-2xl font-semibold text-gray-800 dark:text-white">
-              Modifier la Sécurité & Rôles
+              Modifier le profil
             </h4>
             <p className="mb-6 text-sm text-gray-500 dark:text-gray-400 lg:mb-7">
-              Gérez vos paramètres de sécurité et rôles.
+              Gérez votre photo de profil et changez votre mot de passe.
             </p>
           </div>
           <form className="flex flex-col">
-            <div className="custom-scrollbar h-[600px] overflow-y-auto px-2 pb-3">
+            <div className="custom-scrollbar h-[400px] overflow-y-auto px-2 pb-3">
               <div className="mt-7">
-                <h5 className="mb-5 text-lg font-medium text-gray-800 dark:text-white lg:mb-6">
-                  Sécurité & Rôles
-                </h5>
-
-                <div className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2">
-                  <div className="col-span-2 lg:col-span-1">
-                    <Label>Rôle Principal</Label>
-                    <select className="w-full rounded-lg border border-gray-300 bg-transparent px-4 py-3 text-sm font-medium text-gray-800 dark:text-white outline-none transition focus:border-primary active:border-primary disabled:cursor-default disabled:bg-whiter dark:border-form-strokedark dark:bg-form-input dark:focus:border-primary">
-                      <option value="technicien" className="dark:text-white">Technicien de Laboratoire</option>
-                      <option value="receptionniste" className="dark:text-white">Réceptionniste</option>
-                      <option value="comptable" className="dark:text-white">Comptable</option>
-                      <option value="administrateur" className="dark:text-white">Administrateur</option>
-                    </select>
-                  </div>
-
-                  <div className="col-span-2 lg:col-span-1">
-                    <Label>Statut du compte</Label>
-                    <select className="w-full rounded-lg border border-gray-300 bg-transparent px-4 py-3 text-sm font-medium text-gray-800 dark:text-white outline-none transition focus:border-primary active:border-primary disabled:cursor-default disabled:bg-whiter dark:border-form-strokedark dark:bg-form-input dark:focus:border-primary">
-                      <option value="true" className="dark:text-white">Actif</option>
-                      <option value="false" className="dark:text-white">Inactif</option>
-                    </select>
-                  </div>
-
-                  <div className="col-span-2">
-                    <Label>Photo de profil</Label>
-                    <div className="flex items-center gap-6">
-                      {/* Aperçu de l'image actuelle */}
-                      <div className="flex flex-col items-center gap-2">
-                        <div className="h-20 w-20 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center overflow-hidden border-2 border-gray-300 dark:border-gray-600">
-                          {selectedImage ? (
-                            <img 
-                              src={selectedImage} 
-                              alt="Aperçu" 
-                              className="h-full w-full object-cover"
-                            />
-                          ) : (
-                            <svg className="h-8 w-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                            </svg>
-                          )}
-                        </div>
-                        <span className="text-xs text-gray-500 dark:text-gray-400">
-                          {selectedImage ? "Nouvelle image" : "Aucune image"}
-                        </span>
-                      </div>
-
-                      {/* Sélection de fichier */}
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3">
-                          <input
-                            ref={fileInputRef}
-                            type="file"
-                            accept="image/*"
-                            onChange={handleImageChange}
-                            className="hidden"
+                {/* Section Photo de profil */}
+                <div className="mb-8">
+                  <h5 className="mb-5 text-lg font-medium text-gray-800 dark:text-white lg:mb-6">
+                    Photo de profil
+                  </h5>
+                  
+                  <div className="flex items-center gap-6">
+                    {/* Aperçu de l'image actuelle */}
+                    <div className="flex flex-col items-center gap-2">
+                      <div className="h-20 w-20 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center overflow-hidden border-2 border-gray-300 dark:border-gray-600">
+                        {selectedImage ? (
+                          <img 
+                            src={selectedImage} 
+                            alt="Aperçu" 
+                            className="h-full w-full object-cover"
                           />
+                        ) : photoUrl ? (
+                          <img 
+                            src={photoUrl} 
+                            alt="Photo actuelle" 
+                            className="h-full w-full object-cover"
+                          />
+                        ) : (
+                          <svg className="h-8 w-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                          </svg>
+                        )}
+                      </div>
+                      <span className="text-xs text-gray-500 dark:text-gray-400">
+                        {selectedImage ? "Nouvelle image" : (photoUrl ? "Image actuelle" : "Aucune image")}
+                      </span>
+                    </div>
+
+                    {/* Sélection de fichier */}
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3">
+                        <input
+                          ref={fileInputRef}
+                          type="file"
+                          accept="image/*"
+                          onChange={handleImageChange}
+                          className="hidden"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => fileInputRef.current?.click()}
+                          className="flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+                        >
+                          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                          </svg>
+                          Choisir une image
+                        </button>
+                        {selectedImage && (
                           <button
                             type="button"
-                            onClick={() => fileInputRef.current?.click()}
-                            className="flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+                            onClick={() => {
+                              setSelectedImage(null);
+                              if (fileInputRef.current) {
+                                fileInputRef.current.value = '';
+                              }
+                            }}
+                            className="flex items-center gap-2 rounded-lg border border-red-300 bg-white px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 dark:border-red-600 dark:bg-gray-800 dark:text-red-400 dark:hover:bg-red-900/20"
                           >
                             <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                             </svg>
-                            Choisir une image
+                            Supprimer
                           </button>
-                          {selectedImage && (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setSelectedImage(null);
-                                if (fileInputRef.current) {
-                                  fileInputRef.current.value = '';
-                                }
-                              }}
-                              className="flex items-center gap-2 rounded-lg border border-red-300 bg-white px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 dark:border-red-600 dark:bg-gray-800 dark:text-red-400 dark:hover:bg-red-900/20"
-                            >
-                              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                              </svg>
-                              Supprimer
-                            </button>
-                          )}
-                        </div>
-                        <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
-                          Formats acceptés : JPG, PNG, GIF (max 2MB)
-                        </p>
+                        )}
                       </div>
+                      <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                        Formats acceptés : JPG, PNG, GIF (max 2MB)
+                      </p>
                     </div>
                   </div>
                 </div>
 
                 {/* Section Changement de mot de passe */}
-                <div className="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
+                <div className="pt-6 border-t border-gray-200 dark:border-gray-700">
                   <h5 className="mb-5 text-lg font-medium text-gray-800 dark:text-white lg:mb-6">
                     Changement de mot de passe
                   </h5>
@@ -273,17 +325,32 @@ export default function UserMetaCard() {
                   <div className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2">
                     <div className="col-span-2 lg:col-span-1">
                       <Label>Mot de passe actuel</Label>
-                      <Input type="password" placeholder="Entrez votre mot de passe actuel" />
+                      <Input 
+                        type="password" 
+                        placeholder="Entrez votre mot de passe actuel"
+                        value={currentPassword}
+                        onChange={(e) => setCurrentPassword(e.target.value)}
+                      />
                     </div>
 
                     <div className="col-span-2 lg:col-span-1">
                       <Label>Nouveau mot de passe</Label>
-                      <Input type="password" placeholder="Entrez le nouveau mot de passe" />
+                      <Input 
+                        type="password" 
+                        placeholder="Entrez le nouveau mot de passe"
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                      />
                     </div>
 
                     <div className="col-span-2 lg:col-span-1">
                       <Label>Confirmer le nouveau mot de passe</Label>
-                      <Input type="password" placeholder="Confirmez le nouveau mot de passe" />
+                      <Input 
+                        type="password" 
+                        placeholder="Confirmez le nouveau mot de passe"
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                      />
                     </div>
 
                     <div className="col-span-2 lg:col-span-1">
@@ -300,115 +367,14 @@ export default function UserMetaCard() {
                     </div>
                   </div>
                 </div>
-
-                {/* Section Permissions */}
-                <div className="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
-                  <h5 className="mb-5 text-lg font-medium text-gray-800 dark:text-white lg:mb-6">
-                    Permissions par Module
-                  </h5>
-                  
-                  <div className="space-y-4">
-                    {/* Patients */}
-                    <div className="border border-gray-200 rounded-lg p-4 dark:border-gray-700">
-                      <h6 className="font-medium text-gray-800 dark:text-white mb-3">Patients</h6>
-                      <div className="grid grid-cols-2 gap-3">
-                        <div className="flex items-center gap-2">
-                          <input type="checkbox" id="patients_read" className="rounded" defaultChecked />
-                          <label htmlFor="patients_read" className="text-sm text-gray-800 dark:text-white">READ</label>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <input type="checkbox" id="patients_create" className="rounded" defaultChecked />
-                          <label htmlFor="patients_create" className="text-sm text-gray-800 dark:text-white">CREATE</label>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <input type="checkbox" id="patients_update" className="rounded" />
-                          <label htmlFor="patients_update" className="text-sm text-gray-800 dark:text-white">UPDATE</label>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <input type="checkbox" id="patients_delete" className="rounded" />
-                          <label htmlFor="patients_delete" className="text-sm text-gray-800 dark:text-white">DELETE</label>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Examens */}
-                    <div className="border border-gray-200 rounded-lg p-4 dark:border-gray-700">
-                      <h6 className="font-medium text-gray-800 dark:text-white mb-3">Examens</h6>
-                      <div className="grid grid-cols-2 gap-3">
-                        <div className="flex items-center gap-2">
-                          <input type="checkbox" id="examens_read" className="rounded" defaultChecked />
-                          <label htmlFor="examens_read" className="text-sm text-gray-800 dark:text-white">READ</label>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <input type="checkbox" id="examens_create" className="rounded" />
-                          <label htmlFor="examens_create" className="text-sm text-gray-800 dark:text-white">CREATE</label>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <input type="checkbox" id="examens_update" className="rounded" defaultChecked />
-                          <label htmlFor="examens_update" className="text-sm text-gray-800 dark:text-white">UPDATE</label>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <input type="checkbox" id="examens_delete" className="rounded" />
-                          <label htmlFor="examens_delete" className="text-sm text-gray-800 dark:text-white">DELETE</label>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Stocks */}
-                    <div className="border border-gray-200 rounded-lg p-4 dark:border-gray-700">
-                      <h6 className="font-medium text-gray-800 dark:text-white mb-3">Stocks</h6>
-                      <div className="grid grid-cols-2 gap-3">
-                        <div className="flex items-center gap-2">
-                          <input type="checkbox" id="stocks_read" className="rounded" defaultChecked />
-                          <label htmlFor="stocks_read" className="text-sm text-gray-800 dark:text-white">READ</label>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <input type="checkbox" id="stocks_create" className="rounded" />
-                          <label htmlFor="stocks_create" className="text-sm text-gray-800 dark:text-white">CREATE</label>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <input type="checkbox" id="stocks_update" className="rounded" />
-                          <label htmlFor="stocks_update" className="text-sm text-gray-800 dark:text-white">UPDATE</label>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <input type="checkbox" id="stocks_delete" className="rounded" />
-                          <label htmlFor="stocks_delete" className="text-sm text-gray-800 dark:text-white">DELETE</label>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Factures */}
-                    <div className="border border-gray-200 rounded-lg p-4 dark:border-gray-700">
-                      <h6 className="font-medium text-gray-800 dark:text-white mb-3">Factures</h6>
-                      <div className="grid grid-cols-2 gap-3">
-                        <div className="flex items-center gap-2">
-                          <input type="checkbox" id="factures_read" className="rounded" />
-                          <label htmlFor="factures_read" className="text-sm text-gray-800 dark:text-white">READ</label>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <input type="checkbox" id="factures_create" className="rounded" />
-                          <label htmlFor="factures_create" className="text-sm text-gray-800 dark:text-white">CREATE</label>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <input type="checkbox" id="factures_update" className="rounded" />
-                          <label htmlFor="factures_update" className="text-sm text-gray-800 dark:text-white">UPDATE</label>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <input type="checkbox" id="factures_delete" className="rounded" />
-                          <label htmlFor="factures_delete" className="text-sm text-gray-800 dark:text-white">DELETE</label>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
               </div>
             </div>
             <div className="flex items-center gap-3 px-2 mt-6 lg:justify-end">
               <Button size="sm" variant="outline" onClick={handleClose}>
-                Close
+                Annuler
               </Button>
               <Button size="sm" onClick={handleSave}>
-                Save Changes
+                Enregistrer
               </Button>
             </div>
           </form>

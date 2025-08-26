@@ -244,7 +244,7 @@ class AuthController extends Controller
         $user = $request->user();
         $data = $request->validated();
         $payload = [];
-        foreach (['username','email','telephone','sexe'] as $f) {
+        foreach (['username','nom','postnom','email','telephone','sexe'] as $f) {
             if ($request->has($f)) { $payload[$f] = $request->input($f); }
         }
         if (($data['remove_photo'] ?? false) === true) {

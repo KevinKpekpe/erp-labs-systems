@@ -52,7 +52,7 @@ class InvoiceController extends Controller
     {
         $this->authorizeInvoice($invoice);
         $invoice->load([
-            'patient:id,nom,postnom,prenom',
+            'patient:id,nom,postnom,prenom,contact,adresse',
             'details:id,facture_id,examen_id,prix_unitaire_facture',
             'details.exam:id,nom_examen',
             'payments:id,facture_id,date_paiement,montant_paye,methode_paiement,reference_paiement',
