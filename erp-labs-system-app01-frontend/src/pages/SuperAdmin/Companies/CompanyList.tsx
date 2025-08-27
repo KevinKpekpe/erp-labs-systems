@@ -4,6 +4,7 @@ import { PlusIcon, SearchIcon, EyeIcon, PencilIcon, TrashIcon, RestoreIcon } fro
 import { apiFetch } from "../../../lib/apiClient";
 import PageMeta from "../../../components/common/PageMeta";
 import Alert from "../../../components/ui/alert/Alert";
+import Modal from "../../../components/ui/Modal";
 import { ENV } from "../../../config/env";
 
 interface Company {
@@ -31,6 +32,13 @@ export default function CompanyList() {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [showTrashed, setShowTrashed] = useState(false);
+  
+  // Modals
+  const [deleteModal, setDeleteModal] = useState<{
+    isOpen: boolean;
+    company: Company | null;
+    isForceDelete: boolean;
+  }>({ isOpen: false, company: null, isForceDelete: false });
 
   useEffect(() => {
     const state = (location.state as { success?: string } | null) || null;
@@ -83,31 +91,34 @@ export default function CompanyList() {
     }
   };
 
-  const handleForceDelete = async (id: number) => {
-    if (window.confirm("Êtes-vous sûr de vouloir supprimer définitivement cette compagnie ? Cette action est irréversible.")) {
-      try {
-        await apiFetch(`/v1/superadmin/companies/${id}/force`, { method: "DELETE" }, "superadmin");
-        setSuccessMessage("Compagnie supprimée définitivement avec succès");
-        fetchCompanies();
-      } catch (error) {
-        console.error("Erreur lors de la suppression définitive:", error);
-        setError("Erreur lors de la suppression définitive");
+  const openDeleteModal = (company: Company, isForceDelete = false) => {
+    setDeleteModal({ isOpen: true, company, isForceDelete });
+  };
+
+  const closeDeleteModal = () => {
+    setDeleteModal({ isOpen: false, company: null, isForceDelete: false });
+  };
+
+  const handleDelete = async () => {
+    if (!deleteModal.company) return;
+    
+    try {
+      if (deleteModal.isForceDelete) {
+        await apiFetch(`/v1/superadmin/companies/${deleteModal.company.id}/force`, { method: "DELETE" }, "superadmin");
+        setSuccessMessage("Compagnie supprimée définitivement");
+      } else {
+        await apiFetch(`/v1/superadmin/companies/${deleteModal.company.id}`, { method: "DELETE" }, "superadmin");
+        setSuccessMessage("Compagnie supprimée avec succès");
       }
+      fetchCompanies();
+      closeDeleteModal();
+    } catch (error) {
+      console.error("Erreur lors de la suppression:", error);
+      setError(deleteModal.isForceDelete ? "Erreur lors de la suppression définitive" : "Erreur lors de la suppression");
     }
   };
 
-  const handleSoftDelete = async (id: number) => {
-    if (window.confirm("Êtes-vous sûr de vouloir supprimer cette compagnie ?")) {
-      try {
-        await apiFetch(`/v1/superadmin/companies/${id}`, { method: "DELETE" }, "superadmin");
-        setSuccessMessage("Compagnie supprimée avec succès");
-        fetchCompanies();
-      } catch (error) {
-        console.error("Erreur lors de la suppression:", error);
-        setError("Erreur lors de la suppression");
-      }
-    }
-  };
+
 
   const filteredCompanies = companies.filter(company => {
     if (!searchTerm) return true;
@@ -416,7 +427,7 @@ export default function CompanyList() {
                                 <RestoreIcon className="w-4 h-4" />
                               </button>
                               <button
-                                onClick={() => handleForceDelete(company.id)}
+                                onClick={() => openDeleteModal(company, true)}
                                 className="p-2 text-red-600 hover:text-red-900 hover:bg-red-50 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-900/20 rounded-lg transition-colors"
                                 title="Supprimer définitivement"
                               >
@@ -425,7 +436,7 @@ export default function CompanyList() {
                             </>
                           ) : (
                             <button
-                              onClick={() => handleSoftDelete(company.id)}
+                              onClick={() => openDeleteModal(company, false)}
                               className="p-2 text-red-600 hover:text-red-900 hover:bg-red-50 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-900/20 rounded-lg transition-colors"
                               title="Supprimer"
                             >
@@ -461,6 +472,43 @@ export default function CompanyList() {
             </div>
           </div>
         </div>
+
+        {/* Modal de confirmation de suppression */}
+        <Modal
+          isOpen={deleteModal.isOpen}
+          onClose={closeDeleteModal}
+          title={deleteModal.isForceDelete ? "Suppression définitive" : "Confirmer la suppression"}
+          size="sm"
+        >
+          <div className="text-center">
+            <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 dark:bg-red-900/20 mb-4">
+              <TrashIcon className="h-6 w-6 text-red-600 dark:text-red-400" />
+            </div>
+            <h3 className="mt-4 text-lg font-semibold text-gray-900 dark:text-white">
+              {deleteModal.isForceDelete ? 'Supprimer définitivement cette compagnie ?' : 'Supprimer cette compagnie ?'}
+            </h3>
+            <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+              {deleteModal.isForceDelete
+                ? `La compagnie "${deleteModal.company?.nom_company}" sera définitivement supprimée. Cette action est irréversible.`
+                : `La compagnie "${deleteModal.company?.nom_company}" sera déplacée vers la corbeille et pourra être restaurée.`
+              }
+            </p>
+          </div>
+          <div className="mt-6 flex justify-end space-x-3">
+            <button
+              onClick={closeDeleteModal}
+              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
+            >
+              Annuler
+            </button>
+            <button
+              onClick={handleDelete}
+              className="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-lg hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 dark:bg-red-600 dark:hover:bg-red-700"
+            >
+              {deleteModal.isForceDelete ? 'Supprimer définitivement' : 'Supprimer'}
+            </button>
+          </div>
+        </Modal>
       </div>
     </>
   );
