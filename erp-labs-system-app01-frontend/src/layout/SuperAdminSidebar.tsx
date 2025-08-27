@@ -60,7 +60,7 @@ const baseNavItems: NavItem[] = [
     requiredKind: "superadmin",
     subItems: [
       { name: "Liste des permissions", path: "/superadmin/permissions", requiredKind: "superadmin" },
-      { name: "Nouvelle permission", path: "/superadmin/permissions/new", requiredKind: "superadmin" },
+      { name: "Nouvelle permission", path: "/superadmin/permissions/create", requiredKind: "superadmin" },
     ],
   },
   {

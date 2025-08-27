@@ -17,7 +17,7 @@ class PermissionController extends Controller
         $permissions = Permission::search($q)
             ->orderBy('module')
             ->orderBy('action')
-            ->get();
+            ->paginate(10);
         return ApiResponse::success($permissions, 'auth.me_success');
     }
 
@@ -51,7 +51,7 @@ class PermissionController extends Controller
             ->search($q)
             ->orderBy('module')
             ->orderBy('action')
-            ->get();
+            ->paginate(10);
         return ApiResponse::success($permissions, 'permissions.trashed');
     }
 

@@ -44,6 +44,7 @@ import { AuthProvider, useAuth } from "./context/AuthContext";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 import SuperAdminHome from "./pages/SuperAdmin/Home";
 import { CompanyList, CompanyCreate, CompanyDetails, CompanyEdit } from "./pages/SuperAdmin/Companies";
+import { PermissionList, PermissionCreate, PermissionDetails, PermissionEdit } from "./pages/SuperAdmin/Permissions";
 import MustChangePassword from "./pages/AuthPages/MustChangePassword";
 import UserProfiles from "./pages/UserProfiles";
 import Forbidden from "./pages/OtherPage/Forbidden";
@@ -209,6 +210,12 @@ export default function App() {
               <Route path="/superadmin/companies/new" element={<CompanyCreate />} />
               <Route path="/superadmin/companies/:id" element={<CompanyDetails />} />
               <Route path="/superadmin/companies/:id/edit" element={<CompanyEdit />} />
+              
+              {/* Gestion des Permissions */}
+              <Route path="/superadmin/permissions" element={<PermissionList />} />
+              <Route path="/superadmin/permissions/create" element={<PermissionCreate />} />
+              <Route path="/superadmin/permissions/:id" element={<PermissionDetails />} />
+              <Route path="/superadmin/permissions/:id/edit" element={<PermissionEdit />} />
             </Route>
             <Route path="/403" element={<Forbidden />} />
             <Route path="/500" element={<ServerError />} />

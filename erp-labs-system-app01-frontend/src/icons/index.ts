@@ -31,6 +31,7 @@ import { ReactComponent as CloseLineIcon } from "./close-line.svg?react";
 import { ReactComponent as ChevronDownIcon } from "./chevron-down.svg?react";
 import { ReactComponent as ChevronUpIcon } from "./chevron-up.svg?react";
 import { ReactComponent as ChevronLeftIcon } from "./chevron-left.svg?react";
+import { ReactComponent as ChevronRightIcon } from "./chevron-right.svg?react";
 import { ReactComponent as PaperPlaneIcon } from "./paper-plane.svg?react";
 import { ReactComponent as LockIcon } from "./lock.svg?react";
 import { ReactComponent as EnvelopeIcon } from "./envelope.svg?react";
@@ -71,6 +72,9 @@ import { ReactComponent as StockWarningIcon } from "./stock-warning.svg?react";
 import { ReactComponent as StockValueIcon } from "./stock-value.svg?react";
 import { ReactComponent as HomeIcon } from "./home.svg?react";
 import { ReactComponent as RestoreIcon } from "./restore.svg?react";
+import { ReactComponent as FilterIcon } from "./filter.svg?react";
+import { ReactComponent as CalendarIcon } from "./calendar.svg?react";
+import { ReactComponent as ClockIcon } from "./clock.svg?react";
 import { ReactComponent as SearchIcon } from "./search.svg?react";
 import { ReactComponent as SaveIcon } from "./save.svg?react";
 
@@ -112,6 +116,7 @@ export {
   ChevronDownIcon,
   ChevronUpIcon,
   ChevronLeftIcon,
+  ChevronRightIcon,
   PaperPlaneIcon,
   EnvelopeIcon,
   LockIcon,
@@ -151,6 +156,9 @@ export {
   StockValueIcon,
   HomeIcon,
   RestoreIcon,
+  FilterIcon,
+  CalendarIcon,
+  ClockIcon,
   SearchIcon,
   SaveIcon,
 };
