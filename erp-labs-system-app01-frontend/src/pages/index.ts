@@ -11,4 +11,10 @@ export { default as UsersList } from './Users/UsersList';
 export { default as UserForm } from './Users/UserForm';
 export { default as UserDetails } from './Users/UserDetails';
 
+// Reports
+export { default as ReportsPage } from './Reports/ReportsPage';
+export { default as InventoryReportPage } from './Reports/InventoryReportPage';
+export { default as ExamsReportPage } from './Reports/ExamsReportPage';
+export { default as FinancialReportPage } from './Reports/FinancialReportPage';
+
 

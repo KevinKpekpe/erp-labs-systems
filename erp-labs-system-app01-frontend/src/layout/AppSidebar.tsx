@@ -167,10 +167,10 @@ const baseOthersItems: NavItem[] = [
     icon: <PieChartIcon />,
     name: "Rapports",
     subItems: [
-      { name: "Dashboard financier", path: "/factures/dashboard", requiredPermission: { action: "LIST", module: "FACTURE" } },
-      { name: "Statistiques", path: "/rapports/stats", requiredPermission: { action: "LIST", module: "EXAMEN" } },
-      { name: "Analyses", path: "/rapports/analyses", requiredPermission: { action: "LIST", module: "EXAMEN" } },
-      { name: "Exports", path: "/rapports/exports", requiredPermission: { action: "LIST", module: "EXAMEN" } },
+      { name: "Vue d'ensemble", path: "/reports" },
+      { name: "Inventaire", path: "/reports/inventory" },
+      { name: "Examens", path: "/reports/exams" },
+      { name: "Financier", path: "/reports/financial" },
     ],
   },
   {

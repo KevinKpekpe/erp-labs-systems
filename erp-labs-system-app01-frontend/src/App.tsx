@@ -53,6 +53,10 @@ import { ExamList, ExamCreate, ExamEdit, ExamDetails } from "./pages/Examens";
 import { DemandeList, DemandeCreate, DemandeDetails, DemandeEdit } from "./pages/Demandes";
 import { InvoicesList, InvoiceDetails, PaymentsList, BillingDashboard, RolesList, RoleForm, RoleDetails } from "./pages";
 import { UsersList, UserForm, UserDetails } from "./pages";
+import ReportsPage from "./pages/Reports/ReportsPage";
+import InventoryReportPage from "./pages/Reports/InventoryReportPage";
+import ExamsReportPage from "./pages/Reports/ExamsReportPage";
+import FinancialReportPage from "./pages/Reports/FinancialReportPage";
 
 
 function CompanyGuard({ children }: { children: React.ReactElement }) {
@@ -167,6 +171,13 @@ export default function App() {
               <Route path="/users/nouveau" element={<ProtectedRoute kind="company" requiredPermission={{ action: "CREATE", module: "USER" }}><UserForm /></ProtectedRoute>} />
               <Route path="/users/:id" element={<ProtectedRoute kind="company" requiredPermission={{ action: "LIST", module: "USER" }}><UserDetails /></ProtectedRoute>} />
               <Route path="/users/:id/modifier" element={<ProtectedRoute kind="company" requiredPermission={{ action: "UPDATE", module: "USER" }}><UserForm /></ProtectedRoute>} />
+              
+              {/* Rapports */}
+              <Route path="/reports" element={<ReportsPage />} />
+              <Route path="/reports/inventory" element={<InventoryReportPage />} />
+              <Route path="/reports/exams" element={<ExamsReportPage />} />
+              <Route path="/reports/financial" element={<FinancialReportPage />} />
+              
               <Route path="/company-info" element={<ProtectedRoute kind="company" requiredPermission={{ action: "UPDATE", module: "COMPANY" }}><CompanyInfo /></ProtectedRoute>} />
 
               {/* Others Page */}

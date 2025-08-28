@@ -26,6 +26,7 @@ use App\Http\Controllers\Api\Compagnies\Stock\AlertController as StockAlertContr
 use App\Http\Controllers\Api\Compagnies\Stock\StockDashboardController;
 use App\Http\Controllers\Api\Compagnies\DashboardController;
 use App\Http\Controllers\Api\Compagnies\PermissionController as CompanyPermissionController;
+use App\Http\Controllers\Api\Compagnies\ReportController;
 
 // SuperAdmin Auth
 Route::prefix('v1/superadmin')->group(function () {
@@ -263,5 +264,15 @@ Route::prefix('v1')->group(function () {
 
 		// Billing dashboard
 		Route::get('/billing/dashboard/metrics', [BillingDashboardController::class, 'metrics'])->middleware('can.permission:LIST,FACTURE');
+
+		// Reports
+		Route::prefix('reports')->middleware('can.permission:LIST,EXAMEN')->group(function () {
+			Route::get('/filter-options', [ReportController::class, 'getFilterOptions']);
+			Route::post('/validate-filters', [ReportController::class, 'validateFilters']);
+			Route::post('/inventory', [ReportController::class, 'inventoryReport']);
+			Route::post('/exams', [ReportController::class, 'examsReport']);
+			Route::post('/financial', [ReportController::class, 'financialReport']);
+			Route::get('/download/{reportType}', [ReportController::class, 'downloadReport']);
+		});
 	});
 });

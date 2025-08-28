@@ -1,0 +1,1 @@
+{"success":false,"message":"messages.The selected period is invalid.","code":"INVALID_FILTERS","errors":[],"meta":[],"status":422,"path":"api\/v1\/reports\/download\/exams"}
