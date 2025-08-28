@@ -41,21 +41,47 @@ class InventoryReportService extends BaseReportService
      */
     private function generateSummary(): array
     {
-        $totalArticles = Stock::where('stocks.company_id', $this->companyId)
+        $totalArticles = DB::table('stocks')
+            ->where('stocks.company_id', $this->companyId)
             ->where('stocks.quantite_actuelle', '>', 0)
             ->count();
 
-        $totalValue = Stock::where('stocks.company_id', $this->companyId)
+        // Debug: Vérifions les données brutes
+        $debugStocks = DB::table('stocks')
+            ->where('stocks.company_id', $this->companyId)
             ->join('articles', 'stocks.article_id', '=', 'articles.id')
-            ->selectRaw('SUM(stocks.quantite_actuelle * articles.prix_unitaire) as total')
-            ->value('total') ?? 0;
+            ->select([
+                'stocks.id',
+                'stocks.quantite_actuelle',
+                'articles.prix_unitaire',
+                'articles.nom_article'
+            ])
+            ->get();
 
-        $criticalItems = Stock::where('stocks.company_id', $this->companyId)
+        Log::info('Debug stocks data:', [
+            'company_id' => $this->companyId,
+            'stocks_count' => $debugStocks->count(),
+            'stocks_data' => $debugStocks->toArray()
+        ]);
+
+        $totalValue = DB::table('stocks')
+            ->where('stocks.company_id', $this->companyId)
+            ->join('articles', 'stocks.article_id', '=', 'articles.id')
+            ->sum(DB::raw('COALESCE(stocks.quantite_actuelle,0) * COALESCE(articles.prix_unitaire,0)'));
+
+        Log::info('Debug total value calculation:', [
+            'total_value' => $totalValue,
+            'calculation' => 'SUM(quantite_actuelle * prix_unitaire)'
+        ]);
+
+        $criticalItems = DB::table('stocks')
+            ->where('stocks.company_id', $this->companyId)
             ->whereRaw('stocks.quantite_actuelle <= stocks.seuil_critique')
             ->count();
 
         // Correction : utiliser la relation via articles
-        $expiredItems = Stock::where('stocks.company_id', $this->companyId)
+        $expiredItems = DB::table('stocks')
+            ->where('stocks.company_id', $this->companyId)
             ->join('articles', 'stocks.article_id', '=', 'articles.id')
             ->join('stock_lots', 'articles.id', '=', 'stock_lots.article_id')
             ->where('stock_lots.date_expiration', '<', now())
@@ -65,7 +91,7 @@ class InventoryReportService extends BaseReportService
 
         return [
             'total_articles' => $totalArticles,
-            'total_value' => $this->formatCDF($totalValue),
+            'total_value' => $totalValue,
             'critical_items' => $criticalItems,
             'expired_items' => $expiredItems,
         ];
@@ -76,8 +102,17 @@ class InventoryReportService extends BaseReportService
      */
     private function getArticles()
     {
-        return Stock::where('stocks.company_id', $this->companyId)
-            ->with(['article.category'])
+        return DB::table('stocks')
+            ->where('stocks.company_id', $this->companyId)
+            ->join('articles', 'stocks.article_id', '=', 'articles.id')
+            ->leftJoin('categorie_articles', 'articles.categorie_id', '=', 'categorie_articles.id')
+            ->select([
+                'stocks.*',
+                'articles.nom_article',
+                'articles.prix_unitaire',
+                'articles.unite_mesure',
+                'categorie_articles.nom_categorie'
+            ])
             ->orderBy('stocks.quantite_actuelle', 'asc')
             ->get();
     }
@@ -87,9 +122,18 @@ class InventoryReportService extends BaseReportService
      */
     private function getCriticalArticles()
     {
-        return Stock::where('stocks.company_id', $this->companyId)
+        return DB::table('stocks')
+            ->where('stocks.company_id', $this->companyId)
             ->whereRaw('stocks.quantite_actuelle <= stocks.seuil_critique')
-            ->with(['article.category'])
+            ->join('articles', 'stocks.article_id', '=', 'articles.id')
+            ->leftJoin('categorie_articles', 'articles.categorie_id', '=', 'categorie_articles.id')
+            ->select([
+                'stocks.*',
+                'articles.nom_article',
+                'articles.prix_unitaire',
+                'articles.unite_mesure',
+                'categorie_articles.nom_categorie'
+            ])
             ->orderBy('stocks.quantite_actuelle', 'asc')
             ->get()
             ->map(function ($stock) {

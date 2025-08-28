@@ -56,6 +56,14 @@ class ReportController extends Controller
             $filters = $this->filterService->validateAndTransform($request);
             $companyId = $request->user()->company_id;
 
+            // Debug: Vérifions le company_id
+            Log::info('Debug inventory report:', [
+                'user_id' => $request->user()->id,
+                'user_email' => $request->user()->email,
+                'company_id' => $companyId,
+                'filters' => $filters
+            ]);
+
             try {
                 $reportService = new \App\Services\Reports\InventoryReportService($companyId, $filters);
                 $data = $reportService->generate();

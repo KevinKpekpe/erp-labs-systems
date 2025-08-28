@@ -91,8 +91,9 @@ abstract class BaseReportService
      */
     protected function applyBaseFilters($query, string $dateColumn = 'created_at'): void
     {
-        $query->where('company_id', $this->companyId)
-              ->whereBetween($dateColumn, [$this->startDate, $this->endDate]);
+        $query->where('company_id', $this->companyId);
+        // Temporairement commenté pour tester
+        // ->whereBetween($dateColumn, [$this->startDate, $this->endDate]);
     }
 
     /**

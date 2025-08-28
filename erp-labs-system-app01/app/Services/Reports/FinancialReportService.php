@@ -38,10 +38,30 @@ class FinancialReportService extends BaseReportService
      */
     private function generateSummary(): array
     {
+        // Debug: Vérifions les dates utilisées
+        Log::info('Debug financial report dates:', [
+            'company_id' => $this->companyId,
+            'start_date' => $this->startDate->format('Y-m-d H:i:s'),
+            'end_date' => $this->endDate->format('Y-m-d H:i:s'),
+            'period' => $this->filters['period'] ?? 'unknown'
+        ]);
+
         $totalInvoices = DB::table('factures')
             ->where('factures.company_id', $this->companyId)
             ->whereBetween('factures.date_facture', [$this->startDate, $this->endDate])
             ->count();
+
+        // Debug: Vérifions les factures dans la période
+        $debugInvoices = DB::table('factures')
+            ->where('factures.company_id', $this->companyId)
+            ->whereBetween('factures.date_facture', [$this->startDate, $this->endDate])
+            ->select(['id', 'code', 'date_facture', 'montant_total', 'statut_facture'])
+            ->get();
+
+        Log::info('Debug invoices in period:', [
+            'invoices_count' => $debugInvoices->count(),
+            'invoices_data' => $debugInvoices->toArray()
+        ]);
 
         $totalRevenue = DB::table('factures')
             ->where('factures.company_id', $this->companyId)
@@ -60,12 +80,22 @@ class FinancialReportService extends BaseReportService
             ->whereBetween('paiements.date_paiement', [$this->startDate, $this->endDate])
             ->sum('montant_paye');
 
+        // Debug: Vérifions les valeurs pour le taux de paiement
+        Log::info('Debug payment rate calculation:', [
+            'company_id' => $this->companyId,
+            'total_revenue' => $totalRevenue,
+            'pending_amount' => $pendingAmount,
+            'total_payments' => $totalPayments,
+            'old_formula' => $totalRevenue > 0 ? ($totalPayments / $totalRevenue) * 100 : 0,
+            'new_formula' => $totalRevenue > 0 ? ($totalRevenue / ($totalRevenue + $pendingAmount)) * 100 : 0
+        ]);
+
         return [
             'total_invoices' => $totalInvoices,
-            'total_revenue' => $this->formatCDF($totalRevenue),
-            'pending_amount' => $this->formatCDF($pendingAmount),
-            'total_payments' => $this->formatCDF($totalPayments),
-            'payment_rate' => $totalRevenue > 0 ? round(($totalPayments / $totalRevenue) * 100, 2) : 0,
+            'total_revenue' => $totalRevenue,
+            'pending_amount' => $pendingAmount,
+            'total_payments' => $totalPayments,
+            'payment_rate' => $totalRevenue > 0 ? round(($totalRevenue / ($totalRevenue + $pendingAmount)) * 100, 2) : 0,
         ];
     }
 
@@ -95,6 +125,21 @@ class FinancialReportService extends BaseReportService
      */
     private function getPayments()
     {
+        // Debug: Vérifions les paiements dans la période
+        $debugPayments = DB::table('paiements')
+            ->where('paiements.company_id', $this->companyId)
+            ->whereBetween('paiements.date_paiement', [$this->startDate, $this->endDate])
+            ->select(['id', 'facture_id', 'montant_paye', 'date_paiement', 'methode_paiement'])
+            ->get();
+
+        Log::info('Debug payments in period:', [
+            'company_id' => $this->companyId,
+            'start_date' => $this->startDate->format('Y-m-d H:i:s'),
+            'end_date' => $this->endDate->format('Y-m-d H:i:s'),
+            'payments_count' => $debugPayments->count(),
+            'payments_data' => $debugPayments->toArray()
+        ]);
+
         return DB::table('paiements')
             ->where('paiements.company_id', $this->companyId)
             ->whereBetween('paiements.date_paiement', [$this->startDate, $this->endDate])
@@ -105,7 +150,11 @@ class FinancialReportService extends BaseReportService
             ])
             ->orderByDesc('paiements.date_paiement')
             ->limit(100)
-            ->get();
+            ->get()
+            ->map(function ($payment) {
+                $payment->montant_paye = (float) $payment->montant_paye; // Convertir en nombre
+                return $payment;
+            });
     }
 
     /**
@@ -129,7 +178,8 @@ class FinancialReportService extends BaseReportService
             ->get()
             ->map(function ($item) {
                 $item->month_name = Carbon::createFromDate($item->year, $item->month, 1)->format('F');
-                $item->formatted_revenue = $this->formatCDF($item->total_revenue);
+                $item->total_revenue = (float) $item->total_revenue; // Convertir en nombre
+                $item->invoice_count = (int) $item->invoice_count; // Convertir en nombre
                 return $item;
             });
     }
@@ -145,15 +195,28 @@ class FinancialReportService extends BaseReportService
             ->whereBetween('factures.date_facture', [$this->startDate, $this->endDate])
             ->leftJoin('demande_examens', 'factures.demande_id', '=', 'demande_examens.id')
             ->leftJoin('patients', 'factures.patient_id', '=', 'patients.id')
+            ->leftJoin('paiements', function($join) {
+                $join->on('paiements.facture_id', '=', 'factures.id')
+                     ->where('paiements.company_id', '=', 'factures.company_id');
+            })
             ->select([
                 'factures.*',
                 'patients.nom as patient_nom',
                 'patients.postnom as patient_postnom',
-                'patients.prenom as patient_prenom'
+                'patients.prenom as patient_prenom',
+                DB::raw('COALESCE(SUM(paiements.montant_paye), 0) as montant_paye'),
+                DB::raw('factures.montant_total - COALESCE(SUM(paiements.montant_paye), 0) as reste_a_payer')
             ])
+            ->groupBy('factures.id', 'factures.company_id', 'factures.code', 'factures.demande_id', 'factures.patient_id', 'factures.montant_total', 'factures.statut_facture', 'factures.date_facture', 'factures.created_at', 'factures.updated_at', 'patients.nom', 'patients.postnom', 'patients.prenom')
             ->orderByDesc('factures.date_facture')
             ->limit(50)
-            ->get();
+            ->get()
+            ->map(function ($outstanding) {
+                $outstanding->montant_paye = (float) $outstanding->montant_paye; // Convertir en nombre
+                $outstanding->reste_a_payer = (float) $outstanding->reste_a_payer; // Convertir en nombre
+                $outstanding->montant_total = (float) $outstanding->montant_total; // Convertir en nombre
+                return $outstanding;
+            });
     }
 
     /**
