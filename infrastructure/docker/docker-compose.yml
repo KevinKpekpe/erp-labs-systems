@@ -16,6 +16,9 @@ services:
       MYSQL_DATABASE: ${MYSQL_DATABASE:-erp_labs_systems_app_complete}
       MYSQL_USER: ${MYSQL_USER:-erpuser}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD:-erppassword}
+      # Configuration pour permettre les triggers et fonctions
+      MYSQL_LOG_BIN_TRUST_FUNCTION_CREATORS: 1
+      MYSQL_BINLOG_FORMAT: ROW
     ports:
       - "3306:3306"
     volumes:
