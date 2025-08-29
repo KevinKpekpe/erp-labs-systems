@@ -1,0 +1,70 @@
+# Deployment Backend Spring Boot - SIMPLIFIÉ
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: erp-backend
+  namespace: erp-labs-systems
+  labels:
+    app: erp-backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: erp-backend
+  template:
+    metadata:
+      labels:
+        app: erp-backend
+    spec:
+      containers:
+      - name: erp-backend
+        image: spectredoc/erp-backend:latest
+        ports:
+        - containerPort: 8080
+        env:
+        - name: SPRING_DATASOURCE_URL
+          value: "jdbc:mysql://erp-mysql:3306/erp_labs_systems_app_complete"
+        - name: SPRING_DATASOURCE_USERNAME
+          value: "root"
+        - name: SPRING_DATASOURCE_PASSWORD
+          value: "rootpassword"
+        - name: SPRING_JPA_HIBERNATE_DDL_AUTO
+          value: "validate"
+        - name: SPRING_PROFILES_ACTIVE
+          value: "production"
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /actuator/health
+            port: 8080
+          initialDelaySeconds: 60
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /actuator/health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+---
+# Service Backend - SIMPLIFIÉ
+apiVersion: v1
+kind: Service
+metadata:
+  name: erp-backend
+  namespace: erp-labs-systems
+  labels:
+    app: erp-backend
+spec:
+  selector:
+    app: erp-backend
+  ports:
+  - port: 8080
+    targetPort: 8080
+    protocol: TCP
+  type: ClusterIP

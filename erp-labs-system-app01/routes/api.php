@@ -183,6 +183,7 @@ Route::prefix('v1')->group(function () {
 
 		// Stock - Alerts
 		Route::get('/stock/alerts', [StockAlertController::class, 'index'])->middleware('can.permission:LIST,STOCK');
+		Route::get('/stock/alerts-advanced', [StockAlertController::class, 'advancedAlerts'])->middleware('can.permission:LIST,STOCK');
 
 		// Stock - Dashboard
 		Route::prefix('stock/dashboard')->middleware('can.permission:LIST,STOCK')->group(function () {

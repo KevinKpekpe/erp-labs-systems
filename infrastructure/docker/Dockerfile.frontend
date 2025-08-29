@@ -1,0 +1,27 @@
+# Étape 1 : build de l'app React
+FROM node:20 AS build
+WORKDIR /app
+COPY frontend/erp-labs-sytem-interface/package*.json ./
+RUN npm install
+COPY frontend/erp-labs-sytem-interface/ .
+
+# Variables d'environnement pour le build
+ARG REACT_APP_API_URL
+ARG REACT_APP_API_TIMEOUT
+ARG NODE_ENV
+
+# Build avec les variables d'environnement
+RUN npm run build
+
+# Étape 2 : serveur Nginx pour servir le build
+FROM nginx:1.25-alpine
+
+# Copier le build
+COPY --from=build /app/dist /usr/share/nginx/html
+
+# Copier le script de démarrage
+COPY infrastructure/scripts/start-frontend.sh /start-frontend.sh
+RUN chmod +x /start-frontend.sh
+
+EXPOSE 80
+CMD ["/start-frontend.sh"] 

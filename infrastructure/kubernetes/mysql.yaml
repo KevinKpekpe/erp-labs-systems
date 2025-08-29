@@ -1,0 +1,114 @@
+# Deployment MySQL - SIMPLIFIÉ
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: erp-mysql
+  namespace: erp-labs-systems
+  labels:
+    app: erp-mysql
+    tier: database
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: erp-mysql
+  template:
+    metadata:
+      labels:
+        app: erp-mysql
+        tier: database
+    spec:
+      containers:
+      - name: mysql
+        image: mysql:8.0
+        ports:
+        - containerPort: 3306
+          name: mysql
+        env:
+        - name: MYSQL_ROOT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secret
+              key: mysql-root-password
+        - name: MYSQL_DATABASE
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secret
+              key: mysql-database
+        - name: MYSQL_USER
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secret
+              key: mysql-user
+        - name: MYSQL_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secret
+              key: mysql-password
+        - name: MYSQL_CHARACTER_SET_SERVER
+          value: "utf8mb4"
+        - name: MYSQL_COLLATION_SERVER
+          value: "utf8mb4_unicode_ci"
+        volumeMounts:
+        - name: mysql-persistent-storage
+          mountPath: /var/lib/mysql
+        - name: mysql-init-scripts
+          mountPath: /docker-entrypoint-initdb.d
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "100m"
+          limits:
+            memory: "1Gi"
+            cpu: "200m"
+      volumes:
+      - name: mysql-persistent-storage
+        persistentVolumeClaim:
+          claimName: mysql-pvc-new
+      - name: mysql-init-scripts
+        configMap:
+          name: mysql-init-scripts
+---
+# Service MySQL
+apiVersion: v1
+kind: Service
+metadata:
+  name: erp-mysql
+  namespace: erp-labs-systems
+  labels:
+    app: erp-mysql
+    tier: database
+spec:
+  ports:
+  - port: 3306
+    targetPort: 3306
+    protocol: TCP
+    name: mysql
+  selector:
+    app: erp-mysql
+  type: ClusterIP
+---
+# ConfigMap pour les scripts d'initialisation MySQL
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mysql-init-scripts
+  namespace: erp-labs-systems
+data:
+  # Utilise directement le fichier SQL original
+  init.sql: |
+    -- Script d'initialisation ERP Labs Systems
+    -- Utilise le fichier original erp_labs_systems_app_complete.sql
+    
+    -- Création de la base de données si elle n'existe pas
+    CREATE DATABASE IF NOT EXISTS erp_labs_systems_app_complete;
+    USE erp_labs_systems_app_complete;
+    
+    -- Configuration MySQL
+    SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
+    START TRANSACTION;
+    SET time_zone = "+00:00";
+    SET NAMES utf8mb4;
+    
+    -- Le reste du script sera ajouté via un volume monté
+    -- contenant le fichier erp_labs_systems_app_complete.sql complet 

@@ -22,6 +22,10 @@ class FifoStockService
             $lotsDisponibles = StockLot::forCompany($stock->company_id)
                 ->forArticle($stock->article_id)
                 ->available()
+                ->where(function($query) {
+                    $query->whereNull('date_expiration')
+                          ->orWhere('date_expiration', '>', now());
+                })
                 ->fifoOrder()
                 ->lockForUpdate()
                 ->get();
@@ -77,6 +81,10 @@ class FifoStockService
             $lotsDisponibles = StockLot::forCompany($stock->company_id)
                 ->forArticle($stock->article_id)
                 ->available()
+                ->where(function($query) {
+                    $query->whereNull('date_expiration')
+                          ->orWhere('date_expiration', '>', now());
+                })
                 ->fefoOrder()
                 ->lockForUpdate()
                 ->get();
@@ -133,6 +141,11 @@ class FifoStockService
 
                 if ($lot->article_id !== $stock->article_id) {
                     throw new \InvalidArgumentException("Le lot {$lot->code} n'appartient pas à l'article {$stock->article->nom_article}");
+                }
+
+                // Vérifier que le lot n'est pas expiré
+                if ($lot->isExpired()) {
+                    throw new \InvalidArgumentException("Le lot {$lot->code} est expiré depuis le {$lot->date_expiration->format('d/m/Y')}");
                 }
 
                 $quantite = $lotManuel['quantite'];

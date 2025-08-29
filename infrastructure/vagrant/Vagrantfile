@@ -1,0 +1,86 @@
+Vagrant.configure("2") do |config|
+  config.vm.boot_timeout = 600
+  config.vm.box = "generic/ubuntu2204"
+  config.vm.box_version = "4.3.8"
+
+  config.vm.provider :virtualbox do |vb|
+    vb.gui = false
+    vb.memory = 768
+    vb.cpus = 2
+    vb.customize ["modifyvm", :id, "--natdnshostresolver1", "on"]
+  end
+
+  config.vm.define "ansible-controller" do |ansible|
+    ansible.vm.hostname = "ansible-controller"
+    ansible.vm.network "private_network", ip: "192.168.56.10"
+
+    ansible.vm.provider :virtualbox do |vb|
+      vb.memory = 2048
+      vb.cpus = 2
+      vb.gui = false
+    end
+
+    ansible.vm.provision "shell", path: "provision-ansible.sh"
+
+    ansible.vm.synced_folder "../ansible", "/home/vagrant/ansible",
+      owner: "vagrant",
+      group: "vagrant",
+      mount_options: ["dmode=755,fmode=644"]
+    
+    ansible.vm.synced_folder "../kubernetes", "/home/vagrant/kubernetes",
+      owner: "vagrant",
+      group: "vagrant",
+      mount_options: ["dmode=755,fmode=644"]
+      
+    ansible.vm.synced_folder "../../database", "/home/vagrant/database",
+      owner: "vagrant",
+      group: "vagrant",
+      mount_options: ["dmode=755,fmode=644"]
+      
+    ansible.vm.synced_folder "../scripts", "/home/vagrant/scripts",
+      owner: "vagrant",
+      group: "vagrant",
+      mount_options: ["dmode=755,fmode=644"]
+  end
+
+  config.vm.define "app-server" do |app| # 'app' est défini ici
+    app.vm.hostname = "app-server"
+    app.vm.network "private_network", ip: "192.168.56.11"
+    
+    # Exposition des ports pour accès depuis l'hôte
+    app.vm.network "forwarded_port", guest: 30080, host: 30080
+    app.vm.network "forwarded_port", guest: 30081, host: 30081
+    app.vm.network "forwarded_port", guest: 30000, host: 30000
+
+    app.vm.provider :virtualbox do |vb|
+      vb.memory = 4096 
+      vb.cpus = 3
+      vb.gui = false
+    end
+
+    app.vm.provision "shell", path: "provision-app.sh"
+
+    app.vm.synced_folder "../kubernetes", "/home/vagrant/kubernetes",
+      owner: "vagrant",
+      group: "vagrant",
+      mount_options: ["dmode=755,fmode=644"]
+      
+    app.vm.synced_folder "../../database", "/home/vagrant/database",
+      owner: "vagrant",
+      group: "vagrant",
+      mount_options: ["dmode=755,fmode=644"]
+      
+    app.vm.synced_folder "../scripts", "/home/vagrant/scripts",
+      owner: "vagrant",
+      group: "vagrant",
+      mount_options: ["dmode=755,fmode=644"]
+  end # Le bloc 'app' se termine ici
+
+  # Plugins Hostmanager
+  if Vagrant.has_plugin?("vagrant-hostmanager")
+    config.hostmanager.enabled = true
+    config.hostmanager.manage_host = true
+    config.hostmanager.ignore_private_ip = false
+    config.hostmanager.include_offline = true
+  end
+end

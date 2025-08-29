@@ -57,6 +57,7 @@ import ReportsPage from "./pages/Reports/ReportsPage";
 import InventoryReportPage from "./pages/Reports/InventoryReportPage";
 import ExamsReportPage from "./pages/Reports/ExamsReportPage";
 import FinancialReportPage from "./pages/Reports/FinancialReportPage";
+import StockAlertsPage from "./pages/Stocks/StockAlertsPage";
 
 
 function CompanyGuard({ children }: { children: React.ReactElement }) {
@@ -149,6 +150,7 @@ export default function App() {
               {/* Nouvelles pages complètes */}
               <Route path="/stocks/mouvements" element={<ProtectedRoute kind="company" requiredPermission={{ action: "LIST", module: "STOCK" }}><MovementList /></ProtectedRoute>} />
               <Route path="/stocks/alertes" element={<ProtectedRoute kind="company" requiredPermission={{ action: "LIST", module: "STOCK" }}><AlertsManagement /></ProtectedRoute>} />
+              <Route path="/stocks/alertes-avancees" element={<ProtectedRoute kind="company" requiredPermission={{ action: "LIST", module: "STOCK" }}><StockAlertsPage /></ProtectedRoute>} />
               <Route path="/stocks/lots/expired" element={<ProtectedRoute kind="company" requiredPermission={{ action: "LIST", module: "STOCK" }}><ExpiredLotsManagement /></ProtectedRoute>} />
 
               {/* Facturation */}

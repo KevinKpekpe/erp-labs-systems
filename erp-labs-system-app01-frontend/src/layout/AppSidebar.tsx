@@ -103,6 +103,7 @@ const baseNavItems: NavItem[] = [
       { name: "Lots expirés", path: "/stocks/lots/expired", requiredPermission: { action: "LIST", module: "STOCK" } },
       { name: "Mouvements", path: "/stocks/mouvements", requiredPermission: { action: "LIST", module: "STOCK" } },
       { name: "Alertes", path: "/stocks/alertes", requiredPermission: { action: "LIST", module: "STOCK" } },
+      { name: "Alertes Avancées", path: "/stocks/alertes-avancees", requiredPermission: { action: "LIST", module: "STOCK" } },
     ],
   },
   {

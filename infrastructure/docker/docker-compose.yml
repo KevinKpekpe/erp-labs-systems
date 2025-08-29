@@ -1,0 +1,78 @@
+version: '3.8'
+
+# Variables d'environnement simplifiées
+x-common-env: &common-env
+  TZ: Europe/Paris
+  NODE_ENV: development
+
+services:
+  # Base de données MySQL - SIMPLIFIÉE
+  mysql:
+    image: mysql:8.0
+    container_name: erp-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-rootpassword}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-erp_labs_systems_app_complete}
+      MYSQL_USER: ${MYSQL_USER:-erpuser}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-erppassword}
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
+    networks:
+      - erp-network
+
+  # Backend Spring Boot - SIMPLIFIÉ
+  backend:
+    build:
+      context: ../..
+      dockerfile: infrastructure/docker/Dockerfile.backend
+    container_name: erp-backend
+    restart: unless-stopped
+    depends_on:
+      - mysql
+    environment:
+      <<: *common-env
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-dev}
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/${MYSQL_DATABASE:-erp_labs_systems_app_complete}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      SPRING_DATASOURCE_USERNAME: ${MYSQL_USER:-erpuser}
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_PASSWORD:-erppassword}
+      SERVER_PORT: 8081
+    ports:
+      - "8081:8081"
+    volumes:
+      - uploads:/app/uploads
+    networks:
+      - erp-network
+
+  # Frontend React - SIMPLIFIÉ
+  frontend:
+    build:
+      context: ../..
+      dockerfile: infrastructure/docker/Dockerfile.frontend
+    container_name: erp-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    environment:
+      <<: *common-env
+      REACT_APP_API_URL: http://localhost:8081
+      REACT_APP_ENVIRONMENT: ${NODE_ENV:-development}
+    ports:
+      - "3000:80"
+    networks:
+      - erp-network
+
+# Volumes persistants simplifiés
+volumes:
+  mysql_data:
+    driver: local
+  uploads:
+    driver: local
+
+# Réseau personnalisé
+networks:
+  erp-network:
+    driver: bridge

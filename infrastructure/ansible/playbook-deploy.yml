@@ -1,0 +1,248 @@
+---
+# Playbook de déploiement ERP Labs Systems
+# Version DevOps Junior - Utilise Minikube
+
+- name: Déploiement ERP Labs Systems sur Kubernetes
+  hosts: app-server
+  become: yes
+  become_user: vagrant
+  vars:
+    migrations_dir: /tmp/erp-migrations
+    git_commit_sha: "{{ git_commit_sha | default('latest') }}"
+    environment: "{{ environment | default('production') }}"
+    namespace: erp-labs-systems
+
+  tasks:
+    - name: Vérifier que Minikube est en cours d'exécution
+      shell: minikube start --driver=docker --force
+      register: minikube_start
+      changed_when: minikube_start.rc == 0
+
+    - name: Attendre que Minikube soit prêt
+      wait_for:
+        port: 8443
+        host: "{{ ansible_default_ipv4.address }}"
+        timeout: 300
+
+    - name: Créer le namespace s'il n'existe pas
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: v1
+          kind: Namespace
+          metadata:
+            name: "{{ namespace }}"
+      delegate_to: localhost
+
+    - name: Créer le répertoire des migrations
+      file:
+        path: "{{ migrations_dir }}"
+        state: directory
+        mode: '0755'
+
+    - name: Copier les fichiers de migration
+      copy:
+        src: "{{ item }}"
+        dest: "{{ migrations_dir }}/"
+        mode: '0644'
+      with_fileglob:
+        - "database/migrations/*.sql"
+
+    - name: Récupérer le nom du pod MySQL
+      kubernetes.core.k8s_info:
+        kind: Pod
+        namespace: "{{ namespace }}"
+        label_selectors:
+          - app=erp-mysql
+      register: mysql_pods
+      delegate_to: localhost
+
+    - name: Définir le nom du pod MySQL
+      set_fact:
+        mysql_pod_name: "{{ mysql_pods.resources[0].metadata.name }}"
+
+    - name: Attendre que MySQL soit prêt
+      kubernetes.core.k8s_exec:
+        namespace: "{{ namespace }}"
+        pod: "{{ mysql_pod_name }}"
+        command: mysql -u root -prootpassword -e "SELECT 1;"
+      register: mysql_ready
+      until: mysql_ready.rc == 0
+      retries: 30
+      delay: 10
+      delegate_to: localhost
+
+    - name: Appliquer les migrations de base de données
+      kubernetes.core.k8s_exec:
+        namespace: "{{ namespace }}"
+        pod: "{{ mysql_pod_name }}"
+        command: |
+          mysql -u root -prootpassword -e "
+          USE erp_labs_systems_app_complete;
+          source {{ migrations_dir }}/{{ item | basename }};
+          "
+      with_fileglob:
+        - "database/migrations/*.sql"
+      register: migration_results
+      delegate_to: localhost
+
+    - name: Afficher les résultats des migrations
+      debug:
+        msg: "Migration {{ item.item | basename }} appliquée avec succès"
+      when: item.rc == 0
+      loop: "{{ migration_results.results }}"
+
+    - name: Vérifier la version de la base de données
+      kubernetes.core.k8s_exec:
+        namespace: "{{ namespace }}"
+        pod: "{{ mysql_pod_name }}"
+        command: |
+          mysql -u root -prootpassword -e "
+          USE erp_labs_systems_app_complete;
+          SELECT key_name, key_value FROM database_metadata WHERE key_name IN ('database_version', 'last_migration');
+          "
+      register: db_version
+      delegate_to: localhost
+
+    - name: Afficher la version de la base de données
+      debug:
+        msg: "{{ db_version.stdout }}"
+
+    - name: Mettre à jour l'image du backend
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: apps/v1
+          kind: Deployment
+          metadata:
+            name: erp-backend
+            namespace: "{{ namespace }}"
+          spec:
+            replicas: 1
+            selector:
+              matchLabels:
+                app: erp-backend
+            template:
+              metadata:
+                labels:
+                  app: erp-backend
+              spec:
+                containers:
+                - name: erp-backend
+                  image: "spectredoc/erp-backend:{{ git_commit_sha }}"
+                  ports:
+                  - containerPort: 8080
+                  env:
+                  - name: SPRING_DATASOURCE_URL
+                    value: "jdbc:mysql://erp-mysql:3306/erp_labs_systems_app_complete"
+                  - name: SPRING_DATASOURCE_USERNAME
+                    value: "root"
+                  - name: SPRING_DATASOURCE_PASSWORD
+                    value: "rootpassword"
+                  - name: SPRING_JPA_HIBERNATE_DDL_AUTO
+                    value: "validate"
+                  resources:
+                    requests:
+                      memory: "512Mi"
+                      cpu: "250m"
+                    limits:
+                      memory: "1Gi"
+                      cpu: "500m"
+      delegate_to: localhost
+
+    - name: Mettre à jour l'image du frontend
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: apps/v1
+          kind: Deployment
+          metadata:
+            name: erp-frontend
+            namespace: "{{ namespace }}"
+          spec:
+            replicas: 1
+            selector:
+              matchLabels:
+                app: erp-frontend
+            template:
+              metadata:
+                labels:
+                  app: erp-frontend
+              spec:
+                containers:
+                - name: erp-frontend
+                  image: "spectredoc/erp-frontend:{{ git_commit_sha }}"
+                  ports:
+                  - containerPort: 80
+                  env:
+                  - name: REACT_APP_API_URL
+                    value: "http://erp-backend:8080"
+                  - name: REACT_APP_API_TIMEOUT
+                    value: "30000"
+                  - name: NODE_ENV
+                    value: "{{ environment }}"
+                  resources:
+                    requests:
+                      memory: "256Mi"
+                      cpu: "100m"
+                    limits:
+                      memory: "512Mi"
+                      cpu: "200m"
+      delegate_to: localhost
+
+    - name: Attendre que les déploiements soient prêts
+      kubernetes.core.k8s_info:
+        kind: Deployment
+        namespace: "{{ namespace }}"
+        name: "{{ item }}"
+      register: deployment_status
+      until: deployment_status.resources[0].status.ready_replicas == 1
+      retries: 30
+      delay: 10
+      loop:
+        - erp-backend
+        - erp-frontend
+      delegate_to: localhost
+
+    - name: Vérifier l'état des pods
+      kubernetes.core.k8s_info:
+        kind: Pod
+        namespace: "{{ namespace }}"
+        label_selectors:
+          - app in (erp-backend,erp-frontend,erp-mysql)
+      register: pods_status
+      delegate_to: localhost
+
+    - name: Afficher l'état des pods
+      debug:
+        msg: "Pod {{ item.metadata.name }} - Status: {{ item.status.phase }}"
+      loop: "{{ pods_status.resources }}"
+
+    - name: Vérifier les services
+      kubernetes.core.k8s_info:
+        kind: Service
+        namespace: "{{ namespace }}"
+      register: services_status
+      delegate_to: localhost
+
+    - name: Afficher les services
+      debug:
+        msg: "Service {{ item.metadata.name }} - Port: {{ item.spec.ports[0].port }}"
+      loop: "{{ services_status.resources }}"
+
+    - name: Nettoyer les fichiers de migration temporaires
+      file:
+        path: "{{ migrations_dir }}"
+        state: absent
+
+    - name: Afficher les URLs d'accès
+      debug:
+        msg: |
+          🎉 Déploiement terminé avec succès !
+          
+          📱 Frontend: http://192.168.56.11:30080
+          🔧 Backend: http://192.168.56.11:30081
+          📊 Dashboard: http://192.168.56.11:30000
+          
+          🔑 Pour accéder depuis l'extérieur, utilisez SSH tunneling:
+          ssh -L 30080:192.168.49.2:30080 -L 30081:192.168.49.2:30081 vagrant@192.168.56.11 

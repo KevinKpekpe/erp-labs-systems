@@ -1,0 +1,17 @@
+# Utilise une image Java légère
+FROM eclipse-temurin:21-jre
+
+# Répertoire de travail dans le conteneur
+WORKDIR /app
+
+# Copie le WAR généré par Maven dans l'image (starter-api est le point d'entrée)
+COPY backend/erp-labs-systems-app/erp-labs-systems-app-starter-api/target/*.war app.war
+
+# Expose le port utilisé par l'application
+EXPOSE 8081
+
+# Configuration JVM pour conteneurs
+ENV JAVA_OPTS="-Xms512m -Xmx1024m -XX:+UseG1GC -XX:+UseContainerSupport"
+
+# Commande de lancement (Spring Boot peut exécuter les WAR directement)
+ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar app.war"] 

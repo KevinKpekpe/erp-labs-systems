@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Stock;
 use App\Models\StockAlert;
 use App\Models\StockLot;
+use App\Services\StockAlertService;
 use App\Support\ApiResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -272,6 +273,28 @@ class AlertController extends Controller
         }
 
         return $alerts->values();
+    }
+
+    /**
+     * Obtient les alertes de stock avancées pour le laboratoire
+     */
+    public function advancedAlerts(Request $request)
+    {
+        try {
+            $company = $request->user()->company;
+
+            if (!$company) {
+                return ApiResponse::error('Entreprise non trouvée', 404, 'COMPANY_NOT_FOUND');
+            }
+
+            $stockAlertService = new StockAlertService();
+            $report = $stockAlertService->generateLaboratoryReport($company);
+
+            return ApiResponse::success($report, 'stock.alerts.advanced');
+
+        } catch (\Exception $e) {
+            return ApiResponse::error('Erreur lors de la génération des alertes: ' . $e->getMessage(), 500, 'ALERTS_GENERATION_ERROR');
+        }
     }
 
     /**

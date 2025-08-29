@@ -1,0 +1,98 @@
+# Storage simplifié pour Minikube
+# Version DevOps Junior
+
+# Persistent Volume pour MySQL
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: mysql-pv
+  labels:
+    type: local
+    app: erp-mysql
+spec:
+  storageClassName: standard
+  capacity:
+    storage: 10Gi
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path: "/tmp/erp-mysql"
+  persistentVolumeReclaimPolicy: Retain
+---
+# Persistent Volume Claim pour MySQL
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mysql-pvc
+  namespace: erp-labs-systems
+spec:
+  storageClassName: standard
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+---
+# Nouveau Persistent Volume pour MySQL (propre)
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: mysql-pv-new
+  labels:
+    type: local
+    app: erp-mysql
+spec:
+  storageClassName: standard
+  capacity:
+    storage: 10Gi
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path: "/tmp/erp-mysql-new"
+  persistentVolumeReclaimPolicy: Retain
+---
+# Nouveau Persistent Volume Claim pour MySQL (propre)
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mysql-pvc-new
+  namespace: erp-labs-systems
+spec:
+  storageClassName: standard
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+---
+# Persistent Volume pour les uploads
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: uploads-pv
+  labels:
+    type: local
+    app: erp-backend
+spec:
+  storageClassName: standard
+  capacity:
+    storage: 5Gi
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path: "/tmp/erp-uploads"
+  persistentVolumeReclaimPolicy: Retain
+---
+# Persistent Volume Claim pour les uploads
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: uploads-pvc
+  namespace: erp-labs-systems
+spec:
+  storageClassName: standard
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi 
