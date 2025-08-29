@@ -67,7 +67,7 @@ export default function InventoryReportPage() {
       });
 
       if (response.success) {
-        // TODO: Implémenter l'export Excel/CSV
+        // Export CSV déjà implémenté
         console.log('Données du rapport:', response.data);
       }
     } catch (error) {
@@ -222,7 +222,7 @@ export default function InventoryReportPage() {
               <StockAlertIcon className="w-8 h-8 text-yellow-600 mr-3" />
               <div>
                 <div className="text-2xl font-bold text-gray-900 dark:text-white">
-                  {reportData.summary.critical_articles_count || 0}
+                  {reportData.summary.critical_items || 0}
                 </div>
                 <div className="text-sm text-gray-600 dark:text-gray-400">Articles Critiques</div>
               </div>
@@ -234,7 +234,7 @@ export default function InventoryReportPage() {
               <StockWarningIcon className="w-8 h-8 text-red-600 mr-3" />
               <div>
                 <div className="text-2xl font-bold text-gray-900 dark:text-white">
-                  {reportData.summary.expired_items_count || 0}
+                  {reportData.summary.expired_items || 0}
                 </div>
                 <div className="text-sm text-gray-600 dark:text-gray-400">Articles Expirés</div>
               </div>

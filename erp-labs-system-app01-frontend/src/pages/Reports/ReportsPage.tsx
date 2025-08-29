@@ -23,8 +23,8 @@ interface ReportData {
   summary?: {
     total_articles?: number;
     total_value?: number;
-    critical_articles_count?: number;
-    expired_items_count?: number;
+    critical_items?: number;
+    expired_items?: number;
     total_exams?: number;
     completed_exams?: number;
     pending_exams?: number;
@@ -348,13 +348,13 @@ function InventoryReportView({ data }: { data: ReportData }) {
           </div>
           <div className="bg-yellow-50 dark:bg-yellow-900/20 p-4 rounded-lg">
             <div className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">
-              {data.summary.critical_articles_count || 0}
+                                {data.summary.critical_items || 0}
             </div>
             <div className="text-sm text-yellow-800 dark:text-yellow-200">Articles Critiques</div>
           </div>
           <div className="bg-red-50 dark:bg-red-900/20 p-4 rounded-lg">
             <div className="text-2xl font-bold text-red-600 dark:text-red-400">
-              {data.summary.expired_items_count || 0}
+                                {data.summary.expired_items || 0}
             </div>
             <div className="text-sm text-red-800 dark:text-red-200">Articles Expirés</div>
           </div>
