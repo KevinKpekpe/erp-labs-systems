@@ -1,17 +1,72 @@
-# Utilise une image Java légère
-FROM eclipse-temurin:21-jre
+# Dockerfile Backend Laravel - ERP Labs System
+FROM php:8.2-fpm
 
-# Répertoire de travail dans le conteneur
-WORKDIR /app
+# Variables d'environnement
+ENV DEBIAN_FRONTEND=noninteractive
+ENV PHP_VERSION=8.2
+ENV COMPOSER_ALLOW_SUPERUSER=1
 
-# Copie le WAR généré par Maven dans l'image (starter-api est le point d'entrée)
-COPY backend/erp-labs-systems-app/erp-labs-systems-app-starter-api/target/*.war app.war
+# Installation des dépendances système
+RUN apt-get update && apt-get install -y \
+    git \
+    curl \
+    libpng-dev \
+    libonig-dev \
+    libxml2-dev \
+    libzip-dev \
+    zip \
+    unzip \
+    nginx \
+    supervisor \
+    && docker-php-ext-install \
+        pdo_mysql \
+        mbstring \
+        exif \
+        pcntl \
+        bcmath \
+        gd \
+        zip \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
-# Expose le port utilisé par l'application
-EXPOSE 8081
+# Installation de Composer
+COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-# Configuration JVM pour conteneurs
-ENV JAVA_OPTS="-Xms512m -Xmx1024m -XX:+UseG1GC -XX:+UseContainerSupport"
+# Configuration PHP
+RUN echo "memory_limit = 512M" > /usr/local/etc/php/conf.d/memory-limit.ini \
+    && echo "upload_max_filesize = 100M" >> /usr/local/etc/php/conf.d/upload.ini \
+    && echo "post_max_size = 100M" >> /usr/local/etc/php/conf.d/upload.ini \
+    && echo "max_execution_time = 300" >> /usr/local/etc/php/conf.d/timeout.ini
 
-# Commande de lancement (Spring Boot peut exécuter les WAR directement)
-ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar app.war"] 
+# Création de l'utilisateur non-root
+RUN useradd -m -s /bin/bash laravel \
+    && usermod -aG www-data laravel
+
+# Répertoire de travail
+WORKDIR /var/www/html
+
+# Copie des fichiers du projet
+COPY erp-labs-system-app01/ .
+
+# Installation des dépendances PHP
+RUN composer install --no-dev --optimize-autoloader --no-interaction
+
+# Configuration des permissions
+RUN chown -R laravel:www-data /var/www/html \
+    && chmod -R 755 /var/www/html/storage \
+    && chmod -R 755 /var/www/html/bootstrap/cache
+
+# Configuration Nginx
+COPY infrastructure/docker/nginx.conf /etc/nginx/sites-available/default
+
+# Configuration Supervisor pour gérer Nginx et PHP-FPM
+COPY infrastructure/docker/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+
+# Créer les répertoires de logs
+RUN mkdir -p /var/log/supervisor /var/log/nginx
+
+# Exposition des ports
+EXPOSE 80
+
+# Commande de démarrage avec Supervisor
+CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"] 
